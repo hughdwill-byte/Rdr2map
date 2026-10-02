@@ -86,8 +86,14 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outl
 .item { display: flex; align-items: flex-start; gap: 4px; padding: 0 4px 0 10px; }
 .item:hover { background: #ffffff08; }
 .item label { flex: 1; display: flex; gap: 10px; padding: 7px 0; cursor: pointer; min-width: 0; }
+.item .pick { flex: none; padding: 9px 8px 9px 0; }
+.item .view { flex: 1; display: flex; gap: 10px; padding: 7px 0; text-align: left; min-width: 0; align-items: flex-start; }
+.item .view:hover .nm { color: var(--gold); }
 .item input { position: absolute; opacity: 0; pointer-events: none; }
 .tick { flex: none; width: 18px; height: 18px; margin-top: 1px; border: 1.5px solid #6d5d4b; border-radius: 4px; display: grid; place-items: center; }
+.rdr-dialog { width: min(92vw, 360px); padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); position: relative; }
+.rdr-dialog::backdrop { background: rgba(10, 7, 5, .6); }
+.dlg-close { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border-radius: 50%; color: var(--muted); }
 .item input:checked + .tick { background: var(--red); border-color: var(--red); }
 .item input:checked + .tick::after { content: '✓'; font-size: 12px; color: #fff; }
 .item input:focus-visible + .tick { outline: 2px solid var(--gold); outline-offset: 2px; }
@@ -258,7 +264,8 @@ body[data-tab="story"] .tools { display: none; }
   .tools { padding: 10px 16px; }
   .scroll { padding-left: 10px; padding-right: 10px; }
   /* 44px touch targets */
-  .item label { padding: 10px 0; }
+  .item label, .item .view { padding: 10px 0; }
+  .item .pick { padding-right: 8px; }
   .loc { width: 44px; height: 44px; margin-top: 0; }
   .eye, .eye-ph { width: 44px; height: 44px; }
   .cat-btn { min-height: 48px; }

@@ -226,6 +226,16 @@
     if (t) t.onclick = () => { map.closePopup(); setTab('story'); if (mobileMQ.matches) setSheet('full'); };
   });
 
+  // items without a map pin (hunting and gang requests) open in a detail sheet instead of a map popup
+  function showDetail(it) {
+    const dlg = $('detail');
+    dlg.innerHTML = `<button class="dlg-close" aria-label="Close">✕</button>${popupHtml(it)}`;
+    dlg.querySelector('.dlg-close').onclick = () => dlg.close();
+    dlg.querySelector('[data-toggle]').onclick = () => { dlg.close(); toggle(it.id); };
+    dlg.showModal();
+  }
+  $('detail').addEventListener('click', e => { if (e.target.id === 'detail') e.target.close(); }); // tap outside closes
+
   // ---- logic ----
   const matches = it => !query || (it.n + ' ' + (it.g || '') + ' ' + (it.sub || '') + ' ' + it.d).toLowerCase().includes(query);
   const regionItems = id => D.items.filter(i => i.r.includes(id));
@@ -353,11 +363,11 @@
     const isDone = done.has(it.id);
     const sub = it.c === 'card' ? `#${it.num}` : it.sub || '';
     return `<li class="item ${isDone ? 'is-done' : ''}">
-      <label><input type="checkbox" data-id="${it.id}" ${isDone ? 'checked' : ''}>
-        <span class="tick"></span>
+      <label class="pick" aria-label="Collected: ${esc(it.n)}"><input type="checkbox" data-id="${it.id}" ${isDone ? 'checked' : ''}><span class="tick"></span></label>
+      <button class="view" data-view="${it.id}">
         ${it.img ? `<img class="thumb" src="${it.img}" alt="" loading="lazy">` : ''}
         <span class="txt"><span class="nm">${esc(it.n)}</span>${sub ? `<span class="meta">${esc(sub)}</span>` : ''}
-        ${it.d ? `<span class="desc">${esc(it.d)}</span>` : ''}</span></label>
+        ${it.d ? `<span class="desc">${esc(it.d)}</span>` : ''}</span></button>
       ${it.l.length ? `<button class="loc" data-loc="${it.id}" title="Show on map" aria-label="Show ${esc(it.n)} on map">⌖</button>` : ''}
     </li>`;
   }
@@ -525,6 +535,12 @@
   function refresh() { renderHeader(); renderList(); refreshMarkers(); }
 
   $('list').addEventListener('click', e => {
+    const v = e.target.closest('[data-view]');
+    if (v) {
+      const it = ITEM[v.dataset.view];
+      if (!it.l.length) return showDetail(it);
+      return v.parentElement.querySelector('[data-loc]').click();
+    }
     const t = e.target.closest('[data-open],[data-eye],[data-loc],[data-region],[data-story],[data-start],[data-gostory],[data-ch],[data-camp]');
     if (!t) return;
     const ds = t.dataset;
