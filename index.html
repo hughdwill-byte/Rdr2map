@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RDR2 Collectibles Map</title>
+<meta name="description" content="Interactive Red Dead Redemption 2 story-mode map: every collectible by region with 100% completion tracking.">
+<link rel="icon" href="icons/animal.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<aside id="side">
+  <header class="brand">
+    <h1>Red Dead Redemption II</h1>
+    <p>Collectibles &amp; 100% Tracker</p>
+    <div class="overall">
+      <div class="ring" id="ring"><span id="pct">0%</span></div>
+      <div>
+        <div class="overall-label">Overall completion</div>
+        <div class="overall-count" id="overall-count">0 / 0</div>
+        <button class="link" id="reset">Reset progress</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="scope" id="scope"></div>
+
+  <div class="tools">
+    <input id="search" type="search" placeholder="Search collectibles…" aria-label="Search collectibles">
+    <label class="switch"><input type="checkbox" id="show-done"> Show collected</label>
+  </div>
+
+  <div class="scroll" id="list"></div>
+</aside>
+
+<button id="toggle-side" aria-label="Toggle list">☰</button>
+<main id="map" aria-label="Map"></main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
