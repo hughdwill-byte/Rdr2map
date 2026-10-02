@@ -8,6 +8,8 @@ Covers: Dinosaur Bones (30), Rock Carvings (10), Dreamcatchers (20), Cigarette C
 
 Story-aware: set your chapter (or tick missions) in the Story progress tab and each collection unlocks when the game allows it. People you must meet first (Deborah MacGuinness, Francis Sinclair, Jeremy Gill, Algernon Wasp…) are pinned on the map, treasure hunts reveal one step at a time, and New Austin waits for the Epilogue. Story data lives in `story.js`.
 
+Wildlife tab: switch on any of 122 animals, birds, fish or wild horses to see its habitat outlined on the map (drawn around every spawn point in RDOMap's game data), with when it appears (time-of-day windows from the same data) and where (Red Dead wiki habitat notes). Nothing is shown until you switch an animal on.
+
 Built phone-first for iPhone: a bottom-sheet list you drag or tap, safe-area support for the notch and home bar, and *Add to Home Screen* support so it runs full-screen like an app. Progress can be backed up and restored with a code.
 
 ## Hosting

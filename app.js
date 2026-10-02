@@ -29,6 +29,7 @@
   const openChs = new Set(load('rdr2map.openChs', []));
   let showDone = load('rdr2map.showDone', false);
   let tab = load('rdr2map.tab', 'items');
+  const wildOn = new Set(load('rdr2map.wild', [])); // nothing is shown until the user switches an animal on
   let region = null;
   let query = '';
   const $ = id => document.getElementById(id);
@@ -336,6 +337,7 @@
   function setTab(t) {
     tab = t; save('rdr2map.tab', t);
     document.body.dataset.tab = t;
+    $('search').placeholder = t === 'wild' ? 'Search wildlife…' : 'Search collectibles…';
     for (const b of document.querySelectorAll('[data-tabbtn]')) b.setAttribute('aria-selected', b.dataset.tabbtn === t);
     renderList();
     $('list').scrollTop = 0;
@@ -518,9 +520,82 @@
     return html + `</ol>`;
   }
 
+  // ---- wildlife habitats (loaded on demand: index first, each area file only when switched on) ----
+  const WILD_COLORS = ['#e4473c', '#4fa3d9', '#f2d27a', '#8fbf5a', '#b77fd1', '#e88a3a', '#3fc1b0', '#f07fb0', '#c7c7c7', '#7d8cf0'];
+  let wildIndex = null;
+  const wildLayers = {};
+  const loadWildIndex = () => wildIndex ? Promise.resolve(wildIndex)
+    : fetch('wildlife.json').then(r => r.json()).then(d => (wildIndex = d));
+  const wildColor = id => WILD_COLORS[[...wildOn].indexOf(id) % WILD_COLORS.length];
+  function wildPopup(sp) {
+    return `<div class="pop">
+      <div class="pop-cat">${esc(sp.g)} &middot; habitat</div><div class="pop-title">${esc(sp.n)}</div>
+      ${sp.img ? `<div class="pop-art"><img src="${sp.img}" alt="${esc(sp.n)}"></div>` : ''}
+      <p><b>When:</b> ${esc(sp.cond)}</p>
+      ${sp.hab ? `<p><b>Where:</b> ${esc(sp.hab)}</p>` : ''}
+      ${sp.spots ? `<p class="pop-rw">${sp.spots.toLocaleString()} spawn spots inside this border.</p>` : ''}
+      <button class="btn ghost" data-wildoff="${sp.id}">Hide ${esc(sp.n)}</button></div>`;
+  }
+  async function setWild(id, on, fly = true) {
+    on ? wildOn.add(id) : wildOn.delete(id);
+    save('rdr2map.wild', [...wildOn]);
+    wildLayers[id]?.remove(); delete wildLayers[id];
+    if (on) {
+      const sp = (await loadWildIndex()).find(s => s.id === id);
+      const rings = await fetch(`wild/${id}.json`).then(r => r.json());
+      if (!wildOn.has(id)) return; // switched off while loading
+      const c = wildColor(id);
+      wildLayers[id] = L.polygon(rings, { color: c, weight: 2, opacity: 0.95, fillColor: c, fillOpacity: 0.18 })
+        .bindPopup(() => wildPopup(sp), popOpts).addTo(map);
+      if (fly) {
+        if (mobileMQ.matches) setSheet('peek');
+        map.flyToBounds(wildLayers[id].getBounds(), { ...sheetPad(), maxZoom: 5, duration: 0.8 });
+      }
+    }
+    // recolour so each visible animal keeps a distinct border colour
+    for (const k of wildOn) wildLayers[k]?.setStyle({ color: wildColor(k), fillColor: wildColor(k) });
+    renderLegend();
+    if (tab === 'wild') renderList();
+  }
+  function renderLegend() {
+    let el = $('wild-legend');
+    if (!el) { el = document.createElement('div'); el.id = 'wild-legend'; document.body.appendChild(el); }
+    const on = wildIndex ? wildIndex.filter(s => wildOn.has(s.id)) : [];
+    el.hidden = !on.length;
+    el.innerHTML = on.map(s => `<button data-wildfly="${s.id}"><i style="background:${wildColor(s.id)}"></i>${esc(s.n)}</button>`).join('')
+      + (on.length ? '<button class="wl-clear" data-wildclear="1" aria-label="Hide all habitats">✕</button>' : '');
+  }
+  document.addEventListener('click', e => {
+    const f = e.target.closest('[data-wildfly]'), c = e.target.closest('[data-wildclear]'), off = e.target.closest('[data-wildoff]');
+    if (f) map.flyToBounds(wildLayers[f.dataset.wildfly].getBounds(), { ...sheetPad(), maxZoom: 5, duration: 0.8 });
+    if (c) [...wildOn].forEach(id => setWild(id, false, false));
+    if (off) { map.closePopup(); setWild(off.dataset.wildoff, false, false); }
+  });
+
+  function renderWild() {
+    if (!wildIndex) { loadWildIndex().then(() => tab === 'wild' && renderList()); return '<p class="note pad">Loading wildlife…</p>'; }
+    const q = query;
+    let html = `<div class="wild-intro">Switch an animal on to see the area where it spawns, outlined on the map, plus when it appears.
+      Areas are drawn around every spawn point in the game's data${wildOn.size ? ` · <button class="link" data-wildclear="1">hide all (${wildOn.size})</button>` : ''}</div>`;
+    for (const g of ['Animals', 'Birds', 'Fish', 'Wild horses']) {
+      const list = wildIndex.filter(s => s.g === g && (!q || s.n.toLowerCase().includes(q)));
+      if (!list.length) continue;
+      html += `<h2 class="grp">${g}</h2><ul class="wild-list">`;
+      for (const s of list) {
+        const on = wildOn.has(s.id);
+        html += `<li class="wild-row ${on ? 'on' : ''}" style="--c:${on ? wildColor(s.id) : 'var(--line)'}">
+          ${s.img ? `<img class="thumb" src="${s.img}" alt="" loading="lazy">` : '<span class="thumb"></span>'}
+          <span class="txt"><span class="nm">${esc(s.n)}</span><span class="desc">${esc(s.cond)}</span></span>
+          <label class="switch-ui"><input type="checkbox" role="switch" data-wild="${s.id}" ${on ? 'checked' : ''} aria-label="Show ${esc(s.n)} habitat"><span></span></label></li>`;
+      }
+      html += '</ul>';
+    }
+    return html;
+  }
+
   function renderList() {
     const el = $('list'), top = el.scrollTop;
-    el.innerHTML = (tab === 'story' ? renderStory() : renderItems()) + footerHtml();
+    el.innerHTML = (tab === 'story' ? renderStory() : tab === 'wild' ? renderWild() : renderItems()) + footerHtml();
     el.scrollTop = top;
     const sel = $('cur-ch');
     if (sel) sel.onchange = () => {
@@ -590,12 +665,13 @@
     if (ds.id) toggle(ds.id, e.target.checked);
     else if (ds.mission) setStory(ds.mission, e.target.checked);
     else if (ds.chdone) setStory('chdone-' + ds.chdone, e.target.checked);
+    else if (ds.wild) setWild(ds.wild, e.target.checked);
   });
   for (const b of document.querySelectorAll('[data-tabbtn]')) b.addEventListener('click', () => setTab(b.dataset.tabbtn));
   let qt;
   $('search').addEventListener('input', e => {
     clearTimeout(qt);
-    qt = setTimeout(() => { query = e.target.value.trim().toLowerCase(); if (query && tab !== 'items') setTab('items'); refresh(); }, 120);
+    qt = setTimeout(() => { query = e.target.value.trim().toLowerCase(); if (query && tab === 'story') setTab('items'); refresh(); }, 120);
   });
   $('show-done').checked = showDone;
   $('show-done').addEventListener('change', e => { showDone = e.target.checked; save('rdr2map.showDone', showDone); refreshMarkers(); });
@@ -641,6 +717,7 @@
 
   setSheet('peek');
   setTab(tab);
+  if (wildOn.size) loadWildIndex().then(() => [...wildOn].forEach(id => setWild(id, true, false)));
   refresh();
   goHome(false);
   mobileMQ.addEventListener('change', () => setSheet(sheet));
