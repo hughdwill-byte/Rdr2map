@@ -206,6 +206,7 @@
     return `<div class="pop">
       <div class="pop-head"><span class="pin sm" style="--c:${c.color}"><img src="${iconOf(it)}" alt=""></span>
         <div><div class="pop-cat">${esc(c.name)}</div><div class="pop-title">${esc(it.n)}</div></div></div>
+      ${it.img ? `<div class="pop-art"><img src="${it.img}" alt="${esc(it.n)}"></div>` : ''}
       ${sub ? `<div class="pop-sub">${sub}</div>` : ''}
       ${it.d ? `<p>${esc(it.d)}</p>` : ''}
       ${it.rw ? `<p class="pop-rw">Set reward: ${esc(it.rw)}</p>` : ''}
@@ -354,6 +355,7 @@
     return `<li class="item ${isDone ? 'is-done' : ''}">
       <label><input type="checkbox" data-id="${it.id}" ${isDone ? 'checked' : ''}>
         <span class="tick"></span>
+        ${it.img ? `<img class="thumb" src="${it.img}" alt="" loading="lazy">` : ''}
         <span class="txt"><span class="nm">${esc(it.n)}</span>${sub ? `<span class="meta">${esc(sub)}</span>` : ''}
         ${it.d ? `<span class="desc">${esc(it.d)}</span>` : ''}</span></label>
       ${it.l.length ? `<button class="loc" data-loc="${it.id}" title="Show on map" aria-label="Show ${esc(it.n)} on map">⌖</button>` : ''}

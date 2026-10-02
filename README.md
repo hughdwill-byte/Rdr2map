@@ -17,7 +17,7 @@ Static site, no build step. GitHub → Settings → Pages → *Deploy from a bra
 ## Data & credits
 
 - Map tiles (zoom 2–7): scraped from IGN by [the0neWhoKnocks/red-dead-redemption-2-map](https://github.com/the0neWhoKnocks/red-dead-redemption-2-map) (MIT). Map art © Rockstar Games.
-- Dinosaur bones, graves, orchids, alligator eggs and the game-style icons: [jeanropke/RDOMap](https://github.com/jeanropke/RDOMap) (public domain).
+- Item pictures (legendary animals and fish, hunting-request animals, plume birds, herbs) are the in-game compendium sketches, plus dinosaur bones, graves, orchids, alligator eggs and the game-style icons: [jeanropke/RDOMap](https://github.com/jeanropke/RDOMap) (public domain).
 - Cigarette card sets, numbers and descriptions: [patreiCH72/rdr2-interactive-map](https://github.com/patreiCH72/rdr2-interactive-map) (MIT).
 - Everything else (rock carvings, dreamcatchers, treasure, legendaries, gear): IGN marker data via the0neWhoKnocks.
 - Story missions, gang item requests, treasure-hunt steps, and game-data positions for homesteads, gang camps, legendary animals/fish, dreamcatchers and rock carvings: [Victor-Jnr/rdr2-complete-guide](https://github.com/Victor-Jnr/rdr2-complete-guide) (MIT; wiki-checked, positions from RDOMap game data).

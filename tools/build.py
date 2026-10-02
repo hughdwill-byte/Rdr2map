@@ -107,7 +107,7 @@ for m in I('Animal'):
 # Legendary fish
 for m in I('Fish'):
   if not sub(m).startswith('Legendary'): continue
-  add('fish',re.sub(r'\W+','-',sub(m).replace('Legendary ','').lower()),sub(m),[P(m['lat'],m['lng'])],'Requires the Special Lake/River/Swamp lure from the Lakay bait shop. Mail the catch to Jeremy Gill.')
+  add('fish',re.sub(r'\W+','-',sub(m).replace('Legendary ','').lower()),sub(m),[P(m['lat'],m['lng'])],'Requires the Special Lake/River/Swamp lure from the Lagras bait shop. Mail the catch to Jeremy Gill.')
 # Hunting requests (no fixed locations)
 HR=[['Squirrel','Rabbit'],['Cardinal','Rat','Woodpecker'],['Chipmunk','Oriole','Robin','Opossum'],['Sparrow','Songbird','Toad','Bullfrog','Skunk'],['Waxwing','Bat','Blue Jay','Crow','Beaver']]
 for i,lst in enumerate(HR,1):
@@ -173,6 +173,38 @@ for t in ('Rare Item','Treasure'):
     if t=='Treasure' and n not in ('Lockbox','Misc.'): continue
     if n=='Misc.': n='Chimney stash'
     add('loot',re.sub(r'\W+','-',(n+'-'+str(round(m['lng']))).lower()),n,[P(m['lat'],m['lng'])],dd or 'Valuable item; sell it to a fence.',grp='Other Valuables',ic='stash')
+# Item art: in-game compendium sketches from RDOMap (public domain). Only exact species matches; no art = no image.
+import shutil, os
+GA='RDOMap/assets/images/icons/game/'
+ART={
+  'animal': {'bull gator':'animals/animal_alligator_medium.png','grizzly':'animals/animal_bear.png','beaver':'animals/animal_beaver.png','boar':'animals/animal_boar.png',
+             'buck':'animals/animal_buck.png','cougar':'animals/animal_cougar.png','coyote':'animals/animal_coyote.png','elk':'animals/animal_elk_rocky.png',
+             'fox':'animals/animal_fox_red.png','moose':'animals/animal_moose.png','panther':'animals/animal_panther.png','pronghorn':'animals/animal_pronghorn_american_m.png',
+             'big horn':'animals/animal_bighornram_rocky.png','bison':'animals/legendaries/mp_animal_bison_legendary_01.svg','wolf':'animals/animal_wolf_gray.png'},
+  'fish': {'bluegill':'fish_bluegill','bullhead':'fish_bullheadcat_brown','chain pickerel':'fish_chainpickerel','gar':'fish_longnosegar','largemouth':'fish_largemouthbass',
+           'muskie':'fish_muskie_spotted','perch':'fish_perch','redfin':'fish_redfinpickerel','rock bass':'fish_rockbass','smallmouth':'fish_smallmouthbass',
+           'sockeye':'fish_salmon_sockeye','steelhead':'fish_steelheadtrout','sturgeon':'fish_lake_sturgeon'},
+  'hunt': {'squirrel':'animal_squirrel_grey','rabbit':'animal_rabbit','cardinal':'animal_cardinal','rat':'animal_rat_brown','woodpecker':'animal_woodpecker_pileated',
+           'chipmunk':'animal_chipmunk','oriole':'animal_oriole_baltimore','robin':'animal_robin','opossum':'animal_possum','sparrow':'animal_sparrow_american',
+           'songbird':'animal_songbird_scarlet','toad':'animal_toad','bullfrog':'animal_frogbull','skunk':'animal_skunk','waxwing':'animal_cedarwaxwing',
+           'bat':'animal_bat','blue jay':'animal_bluejay','crow':'animal_crow','beaver':'animal_beaver'},
+  'exotic': {'little egret':'animal_egret_little','reddish egret':'animal_egret_reddish','snowy egret':'animal_egret_snowy','heron':'animal_heron_greatblue','spoonbill':'animal_roseatespoonbill'},
+  'gang': {'oleander':'oleander_sage.png','ginseng':'american_ginseng.png','burdock':'burdock_root.png','seasoning':'oregano.png','rabbit':'animals/animal_rabbit.png','eagle':'animals/animal_eagle_golden.png'},
+}
+os.makedirs('items',exist_ok=True)
+for it in items:
+  table=ART.get(it['c'])
+  if not table: continue
+  name=it['n'].lower().replace('legendary ','')
+  for k,f in sorted(table.items(),key=lambda kv:-len(kv[0])):   # longest key first: "rock bass" before "bass"
+    if re.search(r'\b'+k+r'\b',name):
+      if it['c'] in ('fish','hunt','exotic'): f='animals/'+f+'.png'
+      src=GA+f; dst=os.path.basename(f)
+      if not os.path.exists(src): raise SystemExit('missing art '+src)
+      shutil.copy(src,'items/'+dst); it['img']='items/'+dst
+      break
+print('item images:',sum('img' in i for i in items),{c:sum(1 for i in items if i['c']==c and 'img' in i) for c in ART})
+
 # regions per item
 for it in items:
   it['lr']=[region(*l) for l in it['l']]
