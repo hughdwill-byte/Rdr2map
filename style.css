@@ -11,19 +11,23 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.45 Inter, system-ui, sans-serif; }
-body { display: flex; overflow: hidden; }
-button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+html { -webkit-text-size-adjust: 100%; }
+/* fixed body stops iOS rubber-band scrolling the whole page */
+body { display: flex; overflow: hidden; position: fixed; inset: 0; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; touch-action: manipulation; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 /* ---------- sidebar ---------- */
 #side {
-  width: var(--side); flex: none; height: 100%; display: flex; flex-direction: column;
+  width: var(--side); flex: none; height: 100%; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top);
   background: var(--panel); border-right: 1px solid #000; box-shadow: 4px 0 20px rgba(0,0,0,.5); z-index: 1000;
 }
-.brand { padding: 18px 20px 16px; background: linear-gradient(180deg, #2a0f0c, var(--panel)); border-bottom: 1px solid var(--line); }
-.brand h1 { margin: 0; font: 26px/1.1 'IM Fell English SC', Georgia, serif; letter-spacing: .5px; color: #fff; }
-.brand > p { margin: 2px 0 14px; color: var(--muted); font-size: 12px; letter-spacing: 2px; text-transform: uppercase; }
-.overall { display: flex; gap: 14px; align-items: center; }
+.grab { background: linear-gradient(180deg, #2a0f0c, var(--panel) 70%); }
+.grab-bar, .sheet-btn { display: none; }
+.brand { display: flex; gap: 14px; align-items: center; padding: 18px 20px 16px; border-bottom: 1px solid var(--line); }
+.brand-txt { min-width: 0; flex: 1; }
+.brand h1 { margin: 0; font: 24px/1.1 'IM Fell English SC', Georgia, serif; letter-spacing: .5px; color: #fff; }
+.tag { margin: 2px 0 4px; color: var(--muted); font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
 .ring {
   --p: 0deg; width: 64px; height: 64px; border-radius: 50%; flex: none; display: grid; place-items: center;
   background: conic-gradient(var(--red) var(--p), #3a2a22 0);
@@ -32,7 +36,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outl
 .ring::before { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: var(--panel); }
 .ring span { position: relative; font-weight: 600; font-size: 16px; font-variant-numeric: tabular-nums; }
 .overall-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-.overall-count { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.overall-count { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .link { color: var(--muted); font-size: 12px; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
 .link:hover { color: var(--text); }
 
@@ -41,7 +45,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outl
 .scope-region { display: flex; justify-content: space-between; align-items: center; }
 .scope-state { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px; }
 .scope-name { font: 22px/1.1 'IM Fell English SC', Georgia, serif; color: var(--gold); }
-.close { width: 32px; height: 32px; border-radius: 50%; background: #0003; border: 1px solid var(--line); }
+.close { width: 40px; height: 40px; flex: none; border-radius: 50%; background: #0003; border: 1px solid var(--line); }
 .close:hover { background: var(--red); }
 .scope-prog { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--muted); }
 .scope-prog .bar { flex: 1; margin: 0; }
@@ -49,12 +53,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outl
 .tools { display: flex; gap: 10px; align-items: center; padding: 10px 20px; border-bottom: 1px solid var(--line); }
 #search {
   flex: 1; min-width: 0; background: #0d0a08; border: 1px solid var(--line); color: var(--text);
-  border-radius: 6px; padding: 7px 10px; font: inherit;
+  border-radius: 6px; padding: 8px 10px; font: inherit; font-size: 16px; /* 16px stops iOS zooming on focus */
+  -webkit-appearance: none; appearance: none;
 }
 .switch { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); white-space: nowrap; cursor: pointer; }
 .switch input { accent-color: var(--red); }
 
-.scroll { flex: 1; overflow-y: auto; padding: 4px 12px 24px; scrollbar-width: thin; scrollbar-color: #4a3d31 transparent; }
+.scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 12px calc(24px + env(safe-area-inset-bottom)); scrollbar-width: thin; scrollbar-color: #4a3d31 transparent; }
 .grp { font: 13px 'IM Fell English SC', Georgia, serif; letter-spacing: 2px; color: var(--muted); margin: 18px 8px 8px; text-transform: uppercase; }
 
 .cat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
@@ -149,14 +154,49 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outl
 .btn:hover { background: #c8362d; }
 .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
 
-/* ---------- mobile ---------- */
-#toggle-side { display: none; }
+/* ---------- progress footer ---------- */
+.prog-actions { display: flex; gap: 8px; margin: 0 8px; }
+.pill { flex: 1; min-height: 44px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); font-weight: 600; }
+.pill:hover { border-color: var(--gold); }
+.pill.danger { color: #e4847d; }
+.tip { margin: 18px 8px 0; padding: 12px; border: 1px solid #6b5a2a; border-radius: 8px; background: #2a2214; font-size: 13px; }
+.tip .link { display: inline; margin-left: 4px; }
+
+/* ---------- phones: bottom sheet (tuned for iPhone 13, 390x844) ---------- */
 @media (max-width: 800px) {
-  #side { position: fixed; inset: 0 auto 0 0; width: min(85vw, var(--side)); transform: translateX(-100%); transition: transform .25s; }
-  body.side-open #side { transform: none; }
-  #toggle-side {
-    display: block; position: fixed; left: 12px; bottom: 28px; z-index: 1001; width: 44px; height: 44px; border-radius: 8px;
-    background: var(--panel); border: 1px solid var(--line); font-size: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.5);
+  body { display: block; }
+  #map { position: absolute; inset: 0; height: auto; }
+  #side {
+    position: fixed; left: 0; right: 0; bottom: 0; width: auto; padding-top: 0;
+    height: calc(150px + env(safe-area-inset-bottom));
+    border: 0; border-top: 1px solid #000; border-radius: 16px 16px 0 0; overflow: hidden;
+    box-shadow: 0 -6px 24px rgba(0,0,0,.55); transition: height .28s cubic-bezier(.2,.8,.2,1);
   }
-  body.side-open #toggle-side { left: calc(min(85vw, var(--side)) + 6px); }
+  #side[data-sheet="half"] { height: 56dvh; }
+  #side[data-sheet="full"] { height: calc(100dvh - env(safe-area-inset-top) - 48px); }
+  #side.dragging { transition: none; }
+  .grab { touch-action: none; cursor: grab; flex: none; }
+  .grab-bar { display: block; width: 40px; height: 5px; border-radius: 3px; background: #6d5d4b; margin: 8px auto 0; }
+  .brand { padding: 8px 12px 10px 16px; gap: 12px; border-bottom: 0; }
+  .ring { width: 48px; height: 48px; }
+  .ring::before { inset: 5px; }
+  .ring span { font-size: 13px; }
+  .brand h1 { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tag { display: none; }
+  .sheet-btn { display: block; width: 44px; height: 44px; flex: none; font-size: 18px; color: var(--muted); border-radius: 50%; }
+  .scope { padding: 8px 16px 10px; }
+  .scope-name { font-size: 20px; }
+  .tools { padding: 10px 16px; }
+  .scroll { padding-left: 10px; padding-right: 10px; }
+  /* 44px touch targets */
+  .item label { padding: 10px 0; }
+  .loc { width: 44px; height: 44px; margin-top: 0; }
+  .eye, .eye-ph { width: 44px; height: 44px; }
+  .cat-btn { min-height: 48px; }
+  .reg { min-height: 48px; }
+  .leaflet-bottom { bottom: calc(150px + env(safe-area-inset-bottom)); }
+  .leaflet-top { top: env(safe-area-inset-top); }
+  .leaflet-control-attribution { font-size: 10px; }
+  #side:not([data-sheet="peek"]) ~ #map .leaflet-control-attribution { display: none; }
+  .rdr-popup .leaflet-popup-content { margin: 12px; }
 }

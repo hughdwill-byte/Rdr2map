@@ -2,10 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>RDR2 Collectibles Map</title>
 <meta name="description" content="Interactive Red Dead Redemption 2 story-mode map: every collectible by region with 100% completion tracking.">
-<link rel="icon" href="icons/animal.png">
+<meta name="theme-color" content="#15110d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="RDR2 Map">
+<meta name="format-detection" content="telephone=no">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -13,31 +21,29 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<aside id="side">
-  <header class="brand">
-    <h1>Red Dead Redemption II</h1>
-    <p>Collectibles &amp; 100% Tracker</p>
-    <div class="overall">
+<aside id="side" aria-label="Collectibles list">
+  <div class="grab" id="grab">
+    <div class="grab-bar" aria-hidden="true"></div>
+    <header class="brand">
       <div class="ring" id="ring"><span id="pct">0%</span></div>
-      <div>
-        <div class="overall-label">Overall completion</div>
+      <div class="brand-txt">
+        <h1>Red Dead Redemption II</h1>
+        <p class="tag">Collectibles &amp; 100% Tracker</p>
         <div class="overall-count" id="overall-count">0 / 0</div>
-        <button class="link" id="reset">Reset progress</button>
       </div>
-    </div>
-  </header>
-
-  <div class="scope" id="scope"></div>
+      <button class="sheet-btn" id="sheet-btn" aria-label="Expand list">▴</button>
+    </header>
+    <div class="scope" id="scope"></div>
+  </div>
 
   <div class="tools">
-    <input id="search" type="search" placeholder="Search collectibles…" aria-label="Search collectibles">
+    <input id="search" type="search" placeholder="Search collectibles…" aria-label="Search collectibles" enterkeyhint="search" autocomplete="off" autocorrect="off">
     <label class="switch"><input type="checkbox" id="show-done"> Show collected</label>
   </div>
 
   <div class="scroll" id="list"></div>
 </aside>
 
-<button id="toggle-side" aria-label="Toggle list">☰</button>
 <main id="map" aria-label="Map"></main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>

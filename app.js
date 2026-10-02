@@ -4,14 +4,14 @@
   const CAT = Object.fromEntries(D.cats.map(c => [c.id, c]));
   const REG = Object.fromEntries(D.regions.map(r => [r.id, r]));
   const ITEM = Object.fromEntries(D.items.map(i => [i.id, i]));
-  const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items' };
-  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear']);
+  const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items', money: 'Money & valuables' };
+  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot']);
   const ICON = {
     dino: 'icons/dino.png', carving: 'icons/carving.png', dream: 'icons/dream.png', card: 'icons/card.svg',
     treasure: 'icons/treasure.png', grave: 'icons/grave.png', animal: 'icons/animal.png', fish: 'icons/fish.png',
-    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg',
+    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg',
   };
-  const iconOf = it => it.ic ? (/^(weapon|hat)$/.test(it.ic) ? `icons/${it.ic}.svg` : `icons/${it.ic}.png`) : ICON[it.c];
+  const iconOf = it => it.ic ? (/^(weapon|hat|goldbar|stash)$/.test(it.ic) ? `icons/${it.ic}.svg` : `icons/${it.ic}.png`) : ICON[it.c];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
   // ---- persisted state (per-viewer, so localStorage is the right home) ----
@@ -24,6 +24,9 @@
   let showDone = load('rdr2map.showDone', false);
   let region = null;
   let query = '';
+  const $ = id => document.getElementById(id);
+  const mobileMQ = matchMedia('(max-width: 800px)');
+  const canHover = matchMedia('(hover: hover)').matches;
 
   // ---- map ----
   const bounds = L.latLngBounds([-190, 0], [0, 256]);
@@ -35,9 +38,11 @@
     bounds, noWrap: true, minNativeZoom: 2, maxNativeZoom: 7,
     attribution: 'Map &copy; Rockstar Games &middot; data: <a href="https://github.com/jeanropke/RDOMap">RDOMap</a>, <a href="https://github.com/the0neWhoKnocks/red-dead-redemption-2-map">rdr2-map</a>',
   }).addTo(map);
-  L.control.zoom({ position: 'topright' }).addTo(map);
+  if (canHover) L.control.zoom({ position: 'topright' }).addTo(map); // touch screens pinch instead
   const HOME = L.latLngBounds([-168, 12], [-24, 222]);
-  map.fitBounds(HOME);
+  // keep fitted areas clear of the bottom sheet on phones
+  const sheetPad = () => mobileMQ.matches ? { paddingTopLeft: [16, 16], paddingBottomRight: [16, $('side').offsetHeight + 16] } : { padding: [30, 30] };
+  const goHome = (animate = true) => animate ? map.flyToBounds(HOME, { ...sheetPad(), duration: 0.8 }) : map.fitBounds(HOME, sheetPad());
   const setZoomClass = () => map.getContainer().dataset.zoom = Math.max(2, Math.min(6, Math.floor(map.getZoom())));
   map.on('zoomend', setZoomClass); setZoomClass();
 
@@ -52,7 +57,7 @@
     onEachFeature: (f, layer) => {
       const id = f.properties.id;
       regionLayers[id] = layer;
-      layer.bindTooltip(() => {
+      if (canHover) layer.bindTooltip(() => {
         const [d, t] = progress(regionItems(id));
         return `<b>${esc(REG[id].name)}</b><span>${esc(REG[id].state)} &middot; ${d}/${t}</span>`;
       }, { sticky: true, className: 'region-tip', direction: 'top', offset: [0, -8] });
@@ -74,7 +79,8 @@
       { stroke: false, fillColor: '#120d08', fillOpacity: 0.45, interactive: false }).addTo(map);
   }
 
-  // markers
+  // markers; panPad is mutated as the sheet moves so popups never open under it
+  const panPad = L.point(16, 16);
   const markers = {}; // item id -> [{m, r}]
   for (const it of D.items) {
     markers[it.id] = it.l.map((ll, i) => {
@@ -85,7 +91,7 @@
         }),
         title: it.n, riseOnHover: true, keyboard: false,
       });
-      m.bindPopup(() => popupHtml(it), { className: 'rdr-popup', maxWidth: 300, minWidth: 220 });
+      m.bindPopup(() => popupHtml(it), { className: 'rdr-popup', maxWidth: 280, minWidth: 220, autoPanPaddingTopLeft: [16, 60], autoPanPaddingBottomRight: panPad });
       return { m, r: it.lr[i] };
     });
   }
@@ -104,6 +110,7 @@
     </div>`;
   }
   map.on('popupopen', e => {
+    if (mobileMQ.matches && sheet !== 'peek') setSheet('peek');
     const b = e.popup.getElement().querySelector('[data-toggle]');
     if (b) b.onclick = () => { map.closePopup(); toggle(b.dataset.toggle); };
   });
@@ -138,15 +145,52 @@
     for (const [rid, layer] of Object.entries(regionLayers)) layer.setStyle(regionStyle(rid));
     setShade(id);
     if (id) {
-      map.flyToBounds(regionLayers[id].getBounds(), { padding: [30, 30], duration: 0.8 });
-      if (window.innerWidth < 800) document.body.classList.add('side-open');
+      if (mobileMQ.matches) setSheet('half');
+      map.flyToBounds(regionLayers[id].getBounds(), { ...sheetPad(), duration: 0.8 });
     }
     refresh();
     document.getElementById('list').scrollTop = 0;
   }
 
+  // ---- bottom sheet (phones) ----
+  let sheet = 'peek';
+  function setSheet(s) {
+    sheet = s;
+    const side = $('side');
+    side.style.height = '';
+    side.dataset.sheet = s;
+    $('sheet-btn').textContent = s === 'full' ? '▾' : '▴';
+    $('sheet-btn').setAttribute('aria-label', s === 'full' ? 'Collapse list' : 'Expand list');
+    requestAnimationFrame(() => { panPad.y = (mobileMQ.matches ? side.offsetHeight : 0) + 16; });
+  }
+  {
+    // drag the header to resize; a tap cycles peek -> half -> full -> peek
+    const side = $('side'), grab = $('grab');
+    let y0 = null, h0 = 0, moved = false;
+    grab.addEventListener('pointerdown', e => {
+      if (!mobileMQ.matches || e.target.closest('button:not(#sheet-btn)')) return;
+      y0 = e.clientY; h0 = side.offsetHeight; moved = false;
+      side.classList.add('dragging');
+    });
+    window.addEventListener('pointermove', e => {
+      if (y0 === null) return;
+      const dy = y0 - e.clientY;
+      if (Math.abs(dy) > 6) moved = true;
+      if (moved) side.style.height = Math.max(120, Math.min(window.innerHeight - 40, h0 + dy)) + 'px';
+    });
+    const end = () => {
+      if (y0 === null) return;
+      y0 = null; side.classList.remove('dragging');
+      if (!moved) return setSheet(sheet === 'peek' ? 'half' : sheet === 'half' ? 'full' : 'peek');
+      const f = side.offsetHeight / window.innerHeight;
+      setSheet(f < 0.33 ? 'peek' : f < 0.75 ? 'half' : 'full');
+    };
+    window.addEventListener('pointerup', end);
+    window.addEventListener('pointercancel', end);
+    $('search').addEventListener('focus', () => { if (mobileMQ.matches) setSheet('full'); });
+  }
+
   // ---- sidebar ----
-  const $ = id => document.getElementById(id);
   const bar = (d, t) => `<div class="bar"><i style="width:${t ? (100 * d / t).toFixed(1) : 0}%"></i></div>`;
 
   function renderHeader() {
@@ -160,7 +204,7 @@
       $('scope').innerHTML = `<div class="scope-region"><div><div class="scope-state">${esc(r.state)}</div>
         <div class="scope-name">${esc(r.name)}</div></div><button class="close" id="clear-region" aria-label="Show all regions">✕</button></div>
         <div class="scope-prog">${bar(rd, rt)}<span>${rd}/${rt}</span></div>`;
-      $('clear-region').onclick = () => { selectRegion(null); map.flyToBounds(HOME, { duration: 0.8 }); };
+      $('clear-region').onclick = () => { selectRegion(null); goHome(); };
     } else {
       $('scope').innerHTML = `<div class="scope-hint">Click a region on the map to list only what's there.</div>`;
     }
@@ -234,6 +278,7 @@
       html += `</div>`;
     }
     if (!html) html = `<p class="note pad">Nothing matches “${esc(query)}”.</p>`;
+    html += footerHtml();
     const el = $('list'), top = el.scrollTop;
     el.innerHTML = html;
     el.scrollTop = top;
@@ -260,12 +305,15 @@
       const ms = markers[it.id].filter(x => !region || x.r === region).map(x => x.m);
       if (done.has(it.id) && !showDone) { showDone = true; $('show-done').checked = true; save('rdr2map.showDone', true); }
       refresh();
-      if (window.innerWidth < 800) document.body.classList.remove('side-open');
+      if (mobileMQ.matches) setSheet('peek');
       if (ms.length === 1) {
-        map.flyTo(ms[0].getLatLng(), Math.max(map.getZoom(), 6), { duration: 0.8 });
+        // aim slightly below the marker on phones so it lands above the sheet
+        const z = Math.max(map.getZoom(), 6), ll = ms[0].getLatLng();
+        const c = mobileMQ.matches ? map.unproject(map.project(ll, z).add([0, ($('side').offsetHeight - 120) / 2]), z) : ll;
+        map.flyTo(c, z, { duration: 0.8 });
         map.once('moveend', () => ms[0].openPopup());
       } else if (ms.length) {
-        map.flyToBounds(L.latLngBounds(ms.map(m => m.getLatLng())), { padding: [60, 60], maxZoom: 6, duration: 0.8 });
+        map.flyToBounds(L.latLngBounds(ms.map(m => m.getLatLng())), { ...sheetPad(), maxZoom: 6, duration: 0.8 });
       }
     }
   });
@@ -279,10 +327,41 @@
   });
   $('show-done').checked = showDone;
   $('show-done').addEventListener('change', e => { showDone = e.target.checked; save('rdr2map.showDone', showDone); refreshMarkers(); });
-  $('reset').addEventListener('click', () => {
-    if (confirm('Reset all collected progress? This cannot be undone.')) { done.clear(); save('rdr2map.done', []); refresh(); }
-  });
-  $('toggle-side').addEventListener('click', () => document.body.classList.toggle('side-open'));
+  // ---- progress backup (Safari can clear data of sites not opened for 7 days) ----
+  const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  function footerHtml() {
+    const tip = isIOS && !standalone && !load('rdr2map.tipClosed', false)
+      ? `<div class="tip"><b>Tip:</b> tap <b>Share</b> → <b>Add to Home Screen</b>. It opens full-screen like an app, and Safari won't clear your progress. <button class="link" data-act="tip">Dismiss</button></div>` : '';
+    return `${tip}<h2 class="grp">Your progress</h2><div class="prog-actions">
+      <button class="pill" data-act="backup">Back up</button><button class="pill" data-act="restore">Restore</button>
+      <button class="pill danger" data-act="reset">Reset</button></div>
+      <p class="note">Progress is saved on this device. Back up gives you a code you can restore later or on another device.</p>`;
+  }
+  async function act(a) {
+    if (a === 'tip') { save('rdr2map.tipClosed', true); renderList(); }
+    if (a === 'reset' && confirm('Reset all collected progress? This cannot be undone.')) { done.clear(); save('rdr2map.done', []); refresh(); }
+    if (a === 'backup') {
+      const code = 'RDR2MAP:' + btoa(JSON.stringify([...done]));
+      try {
+        if (navigator.share) await navigator.share({ title: 'RDR2 map progress', text: code });
+        else { await navigator.clipboard.writeText(code); alert('Backup code copied to clipboard.'); }
+      } catch (e) { if (e.name !== 'AbortError') prompt('Copy this backup code:', code); }
+    }
+    if (a === 'restore') {
+      const code = prompt('Paste your backup code:');
+      if (!code) return;
+      try {
+        const ids = JSON.parse(atob(code.trim().replace(/^RDR2MAP:/, ''))).filter(id => ITEM[id]);
+        if (!confirm(`Restore ${ids.length} collected items? This replaces your current progress.`)) return;
+        done.clear(); ids.forEach(id => done.add(id)); save('rdr2map.done', [...done]); refresh();
+      } catch { alert("That doesn't look like a valid backup code."); }
+    }
+  }
+  $('list').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act); });
 
+  setSheet('peek');
   refresh();
+  goHome(false);
+  mobileMQ.addEventListener('change', () => setSheet(sheet));
 })();
