@@ -1,9 +1,13 @@
 (() => {
   'use strict';
-  const D = RDR.data;
+  const D = RDR.data, S = RDR.story;
   const CAT = Object.fromEntries(D.cats.map(c => [c.id, c]));
   const REG = Object.fromEntries(D.regions.map(r => [r.id, r]));
   const ITEM = Object.fromEntries(D.items.map(i => [i.id, i]));
+  const CH = S.chapters;
+  const MISSION = {};
+  for (const ch of CH) for (const [id, n, opt] of ch.missions) MISSION[id] = { id, n, opt: !!opt, ch: ch.n };
+  const START = Object.fromEntries(S.starts.map(s => [s.id, s]));
   const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items', money: 'Money & valuables' };
   const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot']);
   const ICON = {
@@ -18,15 +22,85 @@
   const load = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
   const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* private mode: progress lasts this visit only */ } };
   const done = new Set(load('rdr2map.done', []).filter(id => ITEM[id]));
+  const story = new Set(load('rdr2map.story', []));
   // ponytail: exotics have ~250 spawn markers, so they start hidden to keep the first view readable
   const hiddenCats = new Set(load('rdr2map.hiddenCats', ['exotic']));
   const openCats = new Set(load('rdr2map.openCats', []));
+  const openChs = new Set(load('rdr2map.openChs', []));
   let showDone = load('rdr2map.showDone', false);
+  let tab = load('rdr2map.tab', 'items');
   let region = null;
   let query = '';
   const $ = id => document.getElementById(id);
   const mobileMQ = matchMedia('(max-width: 800px)');
   const canHover = matchMedia('(hover: hover)').matches;
+
+  // ---- story progress & unlock rules ----
+  const chName = n => n > CH.length ? 'the end of the story' : CH[n - 1].name;
+  const chDone = n => story.has('chdone-' + n);
+  const reached = n => n <= 1 || chDone(n - 1);
+  const currentCh = () => { for (const c of CH) if (!chDone(c.n)) return c.n; return CH.length + 1; };
+  const met = t => { const m = /^ch(\d)$/.exec(t); return m ? reached(+m[1]) : story.has(t); };
+
+  // collections that open in order: treasure steps one by one, hunting/exotic lists one list at a time
+  const chainPrev = {};
+  {
+    const byGroup = {};
+    for (const it of D.items) if (['treasure', 'hunt', 'exotic'].includes(it.c)) (byGroup[it.c + '|' + it.g] ||= []).push(it);
+    const lists = {};
+    for (const [k, its] of Object.entries(byGroup)) {
+      const c = k.split('|')[0];
+      if (c === 'treasure') its.forEach((it, i) => { if (i) chainPrev[it.id] = [its[i - 1].id]; });
+      else (lists[c] ||= []).push(its);
+    }
+    for (const groups of Object.values(lists)) groups.forEach((its, i) => { if (i) its.forEach(it => { chainPrev[it.id] = groups[i - 1].map(x => x.id); }); });
+  }
+  // Arthur can't settle in New Austin, so its collectibles wait for the Epilogue
+  const inNewAustin = it => it.r.length > 0 && it.r.every(r => REG[r].state === 'New Austin');
+  const reqsOf = it => [...(S.catReq[it.c] || []), ...(S.itemReq[it.id] || []), ...(inNewAustin(it) ? ['ch7'] : [])];
+  const needs = it => done.has(it.id) ? [] : [
+    ...[...new Set(reqsOf(it))].filter(t => !met(t)),
+    ...(chainPrev[it.id] || []).filter(id => !done.has(id)).map(id => 'item:' + id),
+  ];
+  const unlocked = it => needs(it).length === 0;
+
+  function tokLabel(t) {
+    const m = /^ch(\d)$/.exec(t);
+    if (m) return `Reach ${chName(+m[1])}`;
+    if (t.startsWith('item:')) return `Collect “${ITEM[t.slice(5)].n}” first`;
+    if (START[t]) return `Meet ${START[t].who} — “${START[t].mission}”`;
+    if (MISSION[t]) return `Complete “${MISSION[t].n}”`;
+    return t;
+  }
+  function chip(t) {
+    const tickable = !t.startsWith('item:');
+    const go = START[t] ? `<button class="chip-go" data-start="${t}" title="Show on map" aria-label="Show on map">⌖</button>`
+      : (/^ch\d$/.test(t) || MISSION[t]) ? `<button class="chip-go" data-gostory="${t}" title="Open story progress" aria-label="Open story progress">→</button>`
+      : `<button class="chip-go" data-loc="${t.slice(5)}" title="Show on map" aria-label="Show on map">⌖</button>`;
+    return `<li class="chip">${tickable ? `<button class="chip-tick" data-story="${t}" aria-label="Mark done: ${esc(tokLabel(t))}"></button>` : '<span class="chip-dot"></span>'}
+      <span>${esc(tokLabel(t))}</span>${go}</li>`;
+  }
+
+  // completing anything in chapter N means every earlier chapter is behind you
+  function reachChapter(n) {
+    for (let k = 1; k < n; k++) {
+      story.add('chdone-' + k);
+      for (const [mid, , opt] of CH[k - 1].missions) if (!opt) story.add(mid);
+    }
+  }
+  function setStory(id, on) {
+    const m = /^chdone-(\d)$/.exec(id), c = /^ch(\d)$/.exec(id);
+    if (c) { if (on) reachChapter(+c[1]); else for (let k = +c[1] - 1; k <= CH.length; k++) story.delete('chdone-' + k); }
+    else if (m) { if (on) reachChapter(+m[1] + 1); else for (let k = +m[1]; k <= CH.length; k++) story.delete('chdone-' + k); }
+    else if (on) {
+      story.add(id);
+      const s = START[id], ms = MISSION[id];
+      if (ms) reachChapter(ms.ch);
+      if (s) { reachChapter(s.ch); if (s.after) story.add(s.after); }
+    } else story.delete(id);
+    save('rdr2map.story', [...story]);
+    refresh();
+  }
 
   // ---- map ----
   const bounds = L.latLngBounds([-190, 0], [0, 256]);
@@ -81,19 +155,42 @@
 
   // markers; panPad is mutated as the sheet moves so popups never open under it
   const panPad = L.point(16, 16);
+  const popOpts = { className: 'rdr-popup', maxWidth: 280, minWidth: 220, autoPanPaddingTopLeft: [16, 60], autoPanPaddingBottomRight: panPad };
+  const pinIcon = (html, cls = '') => L.divIcon({ className: 'pin-wrap ' + cls, iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -14], html });
   const markers = {}; // item id -> [{m, r}]
   for (const it of D.items) {
     markers[it.id] = it.l.map((ll, i) => {
-      const m = L.marker(ll, {
-        icon: L.divIcon({
-          className: 'pin-wrap', iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -14],
-          html: `<div class="pin" style="--c:${CAT[it.c].color}"><img src="${iconOf(it)}" alt=""></div>`,
-        }),
-        title: it.n, riseOnHover: true, keyboard: false,
-      });
-      m.bindPopup(() => popupHtml(it), { className: 'rdr-popup', maxWidth: 280, minWidth: 220, autoPanPaddingTopLeft: [16, 60], autoPanPaddingBottomRight: panPad });
+      const m = L.marker(ll, { icon: pinIcon(`<div class="pin" style="--c:${CAT[it.c].color}"><img src="${iconOf(it)}" alt=""></div>`), title: it.n, riseOnHover: true, keyboard: false });
+      m.bindPopup(() => popupHtml(it), popOpts);
       return { m, r: it.lr[i] };
     });
+  }
+  // story start points (people to meet first) and the current chapter's camp
+  const startMarkers = {};
+  for (const s of S.starts) {
+    const m = L.marker(s.l, { icon: pinIcon('<div class="pin start-pin"><b>!</b></div>', 'start'), title: s.who, riseOnHover: true, keyboard: false, zIndexOffset: 500 });
+    m.bindPopup(() => startPopup(s), popOpts);
+    startMarkers[s.id] = m;
+  }
+  const campMarker = L.marker([0, 0], { icon: pinIcon('<div class="pin camp-pin"><b>★</b></div>', 'camp'), title: 'Gang camp', keyboard: false, zIndexOffset: 400 });
+  campMarker.bindPopup(() => {
+    const c = CH[currentCh() - 1];
+    return `<div class="pop"><div class="pop-cat">Main story &middot; ${esc(c.name)}</div><div class="pop-title">${esc(c.place)} camp</div>
+      <p>Main story missions for ${esc(c.name)} start from the gang's camp here (approximate pin).</p>
+      <button class="btn" data-tab="story">Open story progress</button></div>`;
+  }, popOpts);
+
+  const unlockNames = s => esc(CAT[s.unlocks]?.name || s.unlocks);
+  function startPopup(s) {
+    const isDone = story.has(s.id);
+    return `<div class="pop">
+      <div class="pop-head"><span class="pin sm start-pin"><b>!</b></span>
+        <div><div class="pop-cat">Meet first &middot; ${esc(chName(s.ch))}+</div><div class="pop-title">${esc(s.who)}</div></div></div>
+      <div class="pop-sub">${esc(s.mission)} &middot; unlocks ${unlockNames(s)}</div>
+      <p>${esc(s.d)}${s.approx ? ' <i>(approximate pin)</i>' : ''}</p>
+      ${!reached(s.ch) ? `<p class="pop-rw">Not available until ${esc(chName(s.ch))}.</p>` : ''}
+      <button class="btn ${isDone ? 'ghost' : ''}" data-story="${s.id}" data-on="${isDone ? 0 : 1}">${isDone ? 'Mark as not done' : '✓ Mark as done'}</button>
+    </div>`;
   }
 
   function popupHtml(it) {
@@ -111,8 +208,13 @@
   }
   map.on('popupopen', e => {
     if (mobileMQ.matches && sheet !== 'peek') setSheet('peek');
-    const b = e.popup.getElement().querySelector('[data-toggle]');
+    const el = e.popup.getElement();
+    const b = el.querySelector('[data-toggle]');
     if (b) b.onclick = () => { map.closePopup(); toggle(b.dataset.toggle); };
+    const s = el.querySelector('[data-story]');
+    if (s) s.onclick = () => { map.closePopup(); setStory(s.dataset.story, s.dataset.on === '1'); };
+    const t = el.querySelector('[data-tab]');
+    if (t) t.onclick = () => { map.closePopup(); setTab('story'); if (mobileMQ.matches) setSheet('full'); };
   });
 
   // ---- logic ----
@@ -130,7 +232,7 @@
 
   function refreshMarkers() {
     for (const it of D.items) {
-      const visibleItem = !hiddenCats.has(it.c) && (showDone || !done.has(it.id)) && matches(it);
+      const visibleItem = !hiddenCats.has(it.c) && (showDone || !done.has(it.id)) && matches(it) && unlocked(it);
       for (const { m, r } of markers[it.id]) {
         const show = visibleItem && (!region || r === region);
         if (show && !map.hasLayer(m)) m.addTo(map);
@@ -138,6 +240,15 @@
         if (show) m.getElement()?.classList.toggle('done', done.has(it.id));
       }
     }
+    for (const s of S.starts) {
+      const m = startMarkers[s.id], show = !story.has(s.id) && !query;
+      if (show && !map.hasLayer(m)) m.addTo(map);
+      if (!show && map.hasLayer(m)) m.remove();
+      if (show) m.getElement()?.classList.toggle('later', !reached(s.ch));
+    }
+    const camp = CH[currentCh() - 1]?.camp;
+    if (camp && !query) { campMarker.setLatLng(camp); if (!map.hasLayer(campMarker)) campMarker.addTo(map); }
+    else campMarker.remove();
   }
 
   function selectRegion(id) {
@@ -145,11 +256,21 @@
     for (const [rid, layer] of Object.entries(regionLayers)) layer.setStyle(regionStyle(rid));
     setShade(id);
     if (id) {
+      if (tab !== 'items') setTab('items');
       if (mobileMQ.matches) setSheet('half');
       map.flyToBounds(regionLayers[id].getBounds(), { ...sheetPad(), duration: 0.8 });
     }
     refresh();
-    document.getElementById('list').scrollTop = 0;
+    $('list').scrollTop = 0;
+  }
+
+  function flyToPoint(ll, marker) {
+    if (mobileMQ.matches) setSheet('peek');
+    // aim slightly below the point on phones so it lands above the sheet
+    const z = Math.max(map.getZoom(), 6);
+    const c = mobileMQ.matches ? map.unproject(map.project(L.latLng(ll), z).add([0, ($('side').offsetHeight - 120) / 2]), z) : ll;
+    map.flyTo(c, z, { duration: 0.8 });
+    if (marker) map.once('moveend', () => marker.openPopup());
   }
 
   // ---- bottom sheet (phones) ----
@@ -193,12 +314,21 @@
   // ---- sidebar ----
   const bar = (d, t) => `<div class="bar"><i style="width:${t ? (100 * d / t).toFixed(1) : 0}%"></i></div>`;
 
+  function setTab(t) {
+    tab = t; save('rdr2map.tab', t);
+    document.body.dataset.tab = t;
+    for (const b of document.querySelectorAll('[data-tabbtn]')) b.setAttribute('aria-selected', b.dataset.tabbtn === t);
+    renderList();
+    $('list').scrollTop = 0;
+  }
+
   function renderHeader() {
     const [d, t] = progress(D.items);
     const p = t ? Math.floor(100 * d / t) : 0;
     $('pct').textContent = p + '%';
     $('ring').style.setProperty('--p', (t ? d / t : 0) * 360 + 'deg');
-    $('overall-count').textContent = `${d} / ${t} collected`;
+    const cc = currentCh();
+    $('overall-count').textContent = `${d} / ${t} collected · ${cc > CH.length ? 'Story complete' : chName(cc)}`;
     if (region) {
       const r = REG[region], [rd, rt] = progress(regionItems(region));
       $('scope').innerHTML = `<div class="scope-region"><div><div class="scope-state">${esc(r.state)}</div>
@@ -222,9 +352,31 @@
     </li>`;
   }
 
-  function renderList() {
+  // unlocked items as rows; locked ones folded into "N more after …" rows grouped by what they wait for
+  function itemRows(its) {
+    let html = '';
+    const lockedBy = new Map();
+    for (const it of its) {
+      const n = needs(it);
+      if (!n.length) { html += itemRow(it); continue; }
+      const k = n.join('|');
+      lockedBy.set(k, (lockedBy.get(k) || 0) + 1);
+    }
+    for (const [k, count] of lockedBy) {
+      html += `<li class="locked-row"><div class="lock-h">🔒 ${count} more unlock after:</div><ul class="chips">${k.split('|').map(chip).join('')}</ul></li>`;
+    }
+    return html;
+  }
+
+  function renderItems() {
     const list = scoped();
     let html = '';
+    const lockedTotal = D.items.filter(i => !unlocked(i)).length;
+    if (lockedTotal && !query) {
+      const cc = currentCh();
+      html += `<div class="story-banner"><div><b>${lockedTotal}</b> collectibles are waiting on story progress. You're set to <b>${esc(chName(cc))}</b>.</div>
+        <button class="pill sm" data-gostory="ch${cc}">Update story progress</button></div>`;
+    }
     for (const [gid, gname] of Object.entries(GROUPS)) {
       const cats = D.cats.filter(c => c.group === gid);
       let sect = '';
@@ -233,33 +385,36 @@
         if (!all.length) continue;
         const [d, t] = progress(all);
         const its = list.filter(i => i.c === c.id);
-        const open = openCats.has(c.id) || (query && its.length);
         if (query && !its.length) continue;
+        const open = openCats.has(c.id) || (query && its.length);
+        const catNeeds = [...new Set(S.catReq[c.id] || [])].filter(t => !met(t));
         let body = '';
-        if (open) {
+        if (catNeeds.length) {
+          body = `<div class="cat-lock"><div class="lock-h">🔒 Locked — do these first:</div><ul class="chips">${catNeeds.map(chip).join('')}</ul></div>`;
+        } else if (open) {
           if (GROUPED.has(c.id)) {
-            const groups = [...new Set(its.map(i => i.g))];
-            for (const g of groups) {
+            for (const g of [...new Set(its.map(i => i.g))]) {
               const gi = its.filter(i => i.g === g), allG = all.filter(i => i.g === g);
               const [gd, gt] = progress(allG);
               const rw = gi[0].rw ? `<span class="rw">Reward: ${esc(gi[0].rw)}</span>` : '';
-              body += `<div class="sub-h"><span>${esc(g)}</span><span class="${gd === gt ? 'full' : ''}">${gd}/${gt}</span>${rw}</div><ul>${gi.map(itemRow).join('')}</ul>`;
+              body += `<div class="sub-h"><span>${esc(g)}</span><span class="${gd === gt ? 'full' : ''}">${gd}/${gt}</span>${rw}</div><ul>${itemRows(gi)}</ul>`;
             }
-          } else body = `<ul>${its.map(itemRow).join('')}</ul>`;
+          } else body = `<ul>${itemRows(its)}</ul>`;
+          if (c.id === 'hunt' || c.id === 'gang') body += '<p class="note">Not tied to a map location.</p>';
         }
         const hidden = hiddenCats.has(c.id);
-        sect += `<section class="cat ${open ? 'open' : ''} ${d === t ? 'complete' : ''}" style="--c:${c.color}">
+        sect += `<section class="cat ${open ? 'open' : ''} ${d === t ? 'complete' : ''} ${catNeeds.length ? 'is-locked' : ''}" style="--c:${c.color}">
           <div class="cat-h">
             <button class="cat-btn" data-open="${c.id}" aria-expanded="${!!open}">
               <span class="pin sm"><img src="${ICON[c.id]}" alt=""></span>
-              <span class="cat-name">${esc(c.name)}</span>
+              <span class="cat-name">${catNeeds.length ? '🔒 ' : ''}${esc(c.name)}</span>
               <span class="cat-count">${d}/${t}</span>
               <span class="chev">▾</span>
             </button>
             ${c.id === 'hunt' || c.id === 'gang' ? '<span class="eye-ph"></span>' : `<button class="eye ${hidden ? 'off' : ''}" data-eye="${c.id}" title="${hidden ? 'Show' : 'Hide'} on map" aria-label="${hidden ? 'Show' : 'Hide'} ${esc(c.name)} on map">${hidden ? '◌' : '◉'}</button>`}
           </div>
           ${bar(d, t)}
-          ${open ? `<div class="cat-body">${body}${c.id === 'hunt' || c.id === 'gang' ? '<p class="note">Not tied to a map location.</p>' : ''}</div>` : ''}
+          ${body && (open || catNeeds.length) ? `<div class="cat-body">${body}</div>` : ''}
         </section>`;
       }
       if (sect) html += `<h2 class="grp">${gname}</h2>${sect}`;
@@ -269,7 +424,7 @@
     } else if (!query) {
       html += `<h2 class="grp">Regions</h2><div class="regions">`;
       for (const st of [...new Set(D.regions.map(r => r.state))]) {
-        html += `<div class="state">${esc(st)}</div>`;
+        html += `<div class="state">${esc(st)}${st === 'New Austin' && !reached(7) ? ' · opens in the Epilogue' : ''}</div>`;
         for (const r of D.regions.filter(r => r.state === st)) {
           const [d, t] = progress(regionItems(r.id));
           html += `<button class="reg ${d === t ? 'complete' : ''}" data-region="${r.id}"><span>${esc(r.name)}</span><span class="cat-count">${d}/${t}</span>${bar(d, t)}</button>`;
@@ -278,55 +433,147 @@
       html += `</div>`;
     }
     if (!html) html = `<p class="note pad">Nothing matches “${esc(query)}”.</p>`;
-    html += footerHtml();
+    return html;
+  }
+
+  // what opens at each chapter, for the progression timeline
+  function opensAt(n) {
+    const out = [];
+    for (const c of D.cats) {
+      const req = S.catReq[c.id] || [];
+      const chs = req.map(t => /^ch(\d)$/.exec(t)).filter(Boolean).map(m => +m[1]);
+      if (Math.max(1, ...chs) !== n) continue;
+      const people = req.filter(t => START[t] || MISSION[t]).map(t => START[t] ? `meet ${START[t].who}` : `“${MISSION[t].n}”`);
+      out.push(`<li class="opens-item"><span class="pin xs" style="--c:${c.color}"><img src="${ICON[c.id]}" alt=""></span>${esc(c.name)}${people.length ? ` <span class="muted">— ${esc(people.join(', '))}</span>` : ''}</li>`);
+    }
+    const extra = D.items.filter(it => [...(S.itemReq[it.id] || []), ...(inNewAustin(it) ? ['ch7'] : [])].includes('ch' + n) && !(S.catReq[it.c] || []).includes('ch' + n));
+    if (extra.length) out.push(`<li class="opens-item muted">+ ${extra.length} more collectibles${n === 7 ? ' (New Austin opens)' : ''}</li>`);
+    return out.length ? `<div class="opens"><div class="opens-h">Opens in this chapter</div><ul>${out.join('')}</ul></div>` : '';
+  }
+
+  function renderStory() {
+    const cc = currentCh();
+    let html = `<div class="story-now"><label for="cur-ch">I'm currently in</label>
+      <select id="cur-ch">${CH.map(c => `<option value="${c.n}" ${c.n === cc ? 'selected' : ''}>${esc(c.name)} — ${esc(c.place)}</option>`).join('')}
+      <option value="${CH.length + 1}" ${cc > CH.length ? 'selected' : ''}>Finished the story</option></select>
+      <p class="note">Pick your chapter, or tick missions as you play. Collectibles unlock as you go.</p></div><ol class="timeline">`;
+    for (const c of CH) {
+      const state = chDone(c.n) ? 'done' : c.n === cc ? 'current' : 'future';
+      const req = c.missions.filter(([, , opt]) => !opt);
+      const md = c.missions.filter(([id]) => story.has(id)).length;
+      const open = openChs.has(c.n) || (c.n === cc && !openChs.has(-c.n));
+      const starts = S.starts.filter(s => s.ch === c.n);
+      let body = '';
+      if (open) {
+        body += opensAt(c.n);
+        if (starts.length) {
+          body += `<div class="opens-h">Meet first</div><ul>`;
+          for (const s of starts) {
+            const isDone = story.has(s.id);
+            body += `<li class="item start-row ${isDone ? 'is-done' : ''}"><label><input type="checkbox" data-mission="${s.id}" ${isDone ? 'checked' : ''}><span class="tick"></span>
+              <span class="txt"><span class="nm">${esc(s.who)}</span><span class="meta">${esc(s.mission)} · unlocks ${unlockNames(s)}</span>
+              <span class="desc">${esc(s.d)}</span></span></label>
+              <button class="loc" data-start="${s.id}" title="Show on map" aria-label="Show ${esc(s.who)} on map">⌖</button></li>`;
+          }
+          body += `</ul>`;
+        }
+        body += `<div class="opens-h">Missions</div><ul>`;
+        for (const [id, n, opt] of c.missions) {
+          const isDone = story.has(id);
+          const unlocks = D.cats.filter(k => (S.catReq[k.id] || []).includes(id)).map(k => k.name);
+          const tr = Object.entries(S.itemReq).filter(([, q]) => q.includes(id)).length;
+          const tag = [opt ? 'optional' : '', unlocks.length ? `unlocks ${unlocks.join(', ')}` : '', tr ? `unlocks ${tr} collectible${tr > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ');
+          body += `<li class="item ${isDone ? 'is-done' : ''}"><label><input type="checkbox" data-mission="${id}" ${isDone ? 'checked' : ''}><span class="tick"></span>
+            <span class="txt"><span class="nm">${esc(n)}</span>${tag ? `<span class="meta">${esc(tag)}</span>` : ''}</span></label></li>`;
+        }
+        body += `</ul>${c.camp ? `<button class="link camp-link" data-camp="${c.n}">⌖ Show ${esc(c.place)} camp on the map</button>` : ''}
+          <label class="ch-done"><input type="checkbox" data-chdone="${c.n}" ${chDone(c.n) ? 'checked' : ''}> <span>${esc(c.name)} complete</span></label>`;
+      }
+      html += `<li class="ch ${state} ${open ? 'open' : ''}"><span class="node" aria-hidden="true">${state === 'done' ? '✓' : c.n > CH.length - 2 ? 'E' : c.n}</span>
+        <button class="ch-btn" data-ch="${c.n}" aria-expanded="${open}"><span class="ch-name">${esc(c.name)}<span class="ch-place">${esc(c.place)}</span></span>
+          <span class="cat-count">${md}/${c.missions.length}</span><span class="chev">▾</span></button>
+        ${bar(req.filter(([id]) => story.has(id)).length, req.length)}
+        ${open ? `<div class="ch-body">${body}</div>` : ''}</li>`;
+    }
+    return html + `</ol>`;
+  }
+
+  function renderList() {
     const el = $('list'), top = el.scrollTop;
-    el.innerHTML = html;
+    el.innerHTML = (tab === 'story' ? renderStory() : renderItems()) + footerHtml();
     el.scrollTop = top;
+    const sel = $('cur-ch');
+    if (sel) sel.onchange = () => {
+      const n = +sel.value;
+      for (let k = n; k <= CH.length; k++) story.delete('chdone-' + k);
+      reachChapter(n);
+      save('rdr2map.story', [...story]);
+      refresh();
+    };
   }
 
   function refresh() { renderHeader(); renderList(); refreshMarkers(); }
 
   $('list').addEventListener('click', e => {
-    const t = e.target.closest('[data-open],[data-eye],[data-loc],[data-region]');
+    const t = e.target.closest('[data-open],[data-eye],[data-loc],[data-region],[data-story],[data-start],[data-gostory],[data-ch],[data-camp]');
     if (!t) return;
-    if (t.dataset.open) {
-      const id = t.dataset.open;
-      openCats.has(id) ? openCats.delete(id) : openCats.add(id);
+    const ds = t.dataset;
+    if (ds.open) {
+      openCats.has(ds.open) ? openCats.delete(ds.open) : openCats.add(ds.open);
       save('rdr2map.openCats', [...openCats]); renderList();
-    } else if (t.dataset.eye) {
-      const id = t.dataset.eye;
-      hiddenCats.has(id) ? hiddenCats.delete(id) : hiddenCats.add(id);
+    } else if (ds.eye) {
+      hiddenCats.has(ds.eye) ? hiddenCats.delete(ds.eye) : hiddenCats.add(ds.eye);
       save('rdr2map.hiddenCats', [...hiddenCats]); refresh();
-    } else if (t.dataset.region) {
-      selectRegion(t.dataset.region);
-    } else if (t.dataset.loc) {
-      const it = ITEM[t.dataset.loc];
+    } else if (ds.region) {
+      selectRegion(ds.region);
+    } else if (ds.story) {
+      setStory(ds.story, true);
+    } else if (ds.start) {
+      const s = START[ds.start];
+      refreshMarkers();
+      flyToPoint(s.l, map.hasLayer(startMarkers[s.id]) ? startMarkers[s.id] : null);
+    } else if (ds.gostory) {
+      const m = /^ch(\d)$/.exec(ds.gostory);
+      const n = m ? Math.min(+m[1], CH.length) : MISSION[ds.gostory].ch;
+      openChs.add(n); save('rdr2map.openChs', [...openChs]);
+      setTab('story');
+      if (mobileMQ.matches) setSheet('full');
+    } else if (ds.ch) {
+      const n = +ds.ch, cc = currentCh();
+      const open = openChs.has(n) || (n === cc && !openChs.has(-n));
+      openChs.delete(n); openChs.delete(-n);
+      if (!open) openChs.add(n); else if (n === cc) openChs.add(-n); // -n remembers "closed" for the auto-open current chapter
+      save('rdr2map.openChs', [...openChs]); renderList();
+    } else if (ds.camp) {
+      flyToPoint(CH[+ds.camp - 1].camp, null);
+    } else if (ds.loc) {
+      const it = ITEM[ds.loc];
       hiddenCats.delete(it.c);
       const ms = markers[it.id].filter(x => !region || x.r === region).map(x => x.m);
       if (done.has(it.id) && !showDone) { showDone = true; $('show-done').checked = true; save('rdr2map.showDone', true); }
       refresh();
-      if (mobileMQ.matches) setSheet('peek');
-      if (ms.length === 1) {
-        // aim slightly below the marker on phones so it lands above the sheet
-        const z = Math.max(map.getZoom(), 6), ll = ms[0].getLatLng();
-        const c = mobileMQ.matches ? map.unproject(map.project(ll, z).add([0, ($('side').offsetHeight - 120) / 2]), z) : ll;
-        map.flyTo(c, z, { duration: 0.8 });
-        map.once('moveend', () => ms[0].openPopup());
-      } else if (ms.length) {
+      if (ms.length === 1) flyToPoint(ms[0].getLatLng(), ms[0]);
+      else if (ms.length) {
+        if (mobileMQ.matches) setSheet('peek');
         map.flyToBounds(L.latLngBounds(ms.map(m => m.getLatLng())), { ...sheetPad(), maxZoom: 6, duration: 0.8 });
       }
     }
   });
   $('list').addEventListener('change', e => {
-    if (e.target.dataset.id) toggle(e.target.dataset.id, e.target.checked);
+    const ds = e.target.dataset;
+    if (ds.id) toggle(ds.id, e.target.checked);
+    else if (ds.mission) setStory(ds.mission, e.target.checked);
+    else if (ds.chdone) setStory('chdone-' + ds.chdone, e.target.checked);
   });
+  for (const b of document.querySelectorAll('[data-tabbtn]')) b.addEventListener('click', () => setTab(b.dataset.tabbtn));
   let qt;
   $('search').addEventListener('input', e => {
     clearTimeout(qt);
-    qt = setTimeout(() => { query = e.target.value.trim().toLowerCase(); refresh(); }, 120);
+    qt = setTimeout(() => { query = e.target.value.trim().toLowerCase(); if (query && tab !== 'items') setTab('items'); refresh(); }, 120);
   });
   $('show-done').checked = showDone;
   $('show-done').addEventListener('change', e => { showDone = e.target.checked; save('rdr2map.showDone', showDone); refreshMarkers(); });
+
   // ---- progress backup (Safari can clear data of sites not opened for 7 days) ----
   const isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
@@ -336,13 +583,15 @@
     return `${tip}<h2 class="grp">Your progress</h2><div class="prog-actions">
       <button class="pill" data-act="backup">Back up</button><button class="pill" data-act="restore">Restore</button>
       <button class="pill danger" data-act="reset">Reset</button></div>
-      <p class="note">Progress is saved on this device. Back up gives you a code you can restore later or on another device.</p>`;
+      <p class="note">Collectibles and story progress are saved on this device. Back up gives you a code you can restore later or on another device.</p>`;
   }
   async function act(a) {
     if (a === 'tip') { save('rdr2map.tipClosed', true); renderList(); }
-    if (a === 'reset' && confirm('Reset all collected progress? This cannot be undone.')) { done.clear(); save('rdr2map.done', []); refresh(); }
+    if (a === 'reset' && confirm('Reset all collected items and story progress? This cannot be undone.')) {
+      done.clear(); story.clear(); save('rdr2map.done', []); save('rdr2map.story', []); refresh();
+    }
     if (a === 'backup') {
-      const code = 'RDR2MAP:' + btoa(JSON.stringify([...done]));
+      const code = 'RDR2MAP:' + btoa(JSON.stringify({ d: [...done], s: [...story] }));
       try {
         if (navigator.share) await navigator.share({ title: 'RDR2 map progress', text: code });
         else { await navigator.clipboard.writeText(code); alert('Backup code copied to clipboard.'); }
@@ -352,15 +601,20 @@
       const code = prompt('Paste your backup code:');
       if (!code) return;
       try {
-        const ids = JSON.parse(atob(code.trim().replace(/^RDR2MAP:/, ''))).filter(id => ITEM[id]);
-        if (!confirm(`Restore ${ids.length} collected items? This replaces your current progress.`)) return;
-        done.clear(); ids.forEach(id => done.add(id)); save('rdr2map.done', [...done]); refresh();
+        const data = JSON.parse(atob(code.trim().replace(/^RDR2MAP:/, '')));
+        const ids = (Array.isArray(data) ? data : data.d).filter(id => ITEM[id]); // older codes were a bare array
+        const st = Array.isArray(data) ? [] : data.s || [];
+        if (!confirm(`Restore ${ids.length} collected items and ${st.length} story steps? This replaces your current progress.`)) return;
+        done.clear(); ids.forEach(id => done.add(id)); save('rdr2map.done', [...done]);
+        story.clear(); st.forEach(id => story.add(id)); save('rdr2map.story', [...story]);
+        refresh();
       } catch { alert("That doesn't look like a valid backup code."); }
     }
   }
   $('list').addEventListener('click', e => { const b = e.target.closest('[data-act]'); if (b) act(b.dataset.act); });
 
   setSheet('peek');
+  setTab(tab);
   refresh();
   goHome(false);
   mobileMQ.addEventListener('change', () => setSheet(sheet));

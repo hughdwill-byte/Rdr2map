@@ -6,6 +6,8 @@ Interactive Red Dead Redemption 2 (story mode) map for 100% completion. Click a 
 
 Covers: Dinosaur Bones (30), Rock Carvings (10), Dreamcatchers (20), Cigarette Cards (144 in 12 sets), Treasure Maps (7 hunts), Graves (9), Legendary Animals (16), Legendary Fish (13), Hunting Requests (5), Exotics (5 lists, with orchid/plume/egg spawn spots), Gang Member Requests (17), Unique Weapons & Hats, and Valuable Stashes (gold bars, homestead stashes and other sellable valuables).
 
+Story-aware: set your chapter (or tick missions) in the Story progress tab and each collection unlocks when the game allows it. People you must meet first (Deborah MacGuinness, Francis Sinclair, Jeremy Gill, Algernon Wasp…) are pinned on the map, treasure hunts reveal one step at a time, and New Austin waits for the Epilogue. Story data lives in `story.js`.
+
 Built phone-first for iPhone: a bottom-sheet list you drag or tap, safe-area support for the notch and home bar, and *Add to Home Screen* support so it runs full-screen like an app. Progress can be backed up and restored with a code.
 
 ## Hosting

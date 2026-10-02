@@ -36,6 +36,11 @@
     <div class="scope" id="scope"></div>
   </div>
 
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tabbtn="items" aria-selected="true">Collectibles</button>
+    <button role="tab" data-tabbtn="story" aria-selected="false">Story progress</button>
+  </div>
+
   <div class="tools">
     <input id="search" type="search" placeholder="Search collectibles…" aria-label="Search collectibles" enterkeyhint="search" autocomplete="off" autocorrect="off">
     <label class="switch"><input type="checkbox" id="show-done"> Show collected</label>
@@ -48,6 +53,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="data.js"></script>
+<script src="story.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
