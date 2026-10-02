@@ -57,7 +57,7 @@
   }
   // Arthur can't settle in New Austin, so its collectibles wait for the Epilogue
   const inNewAustin = it => it.r.length > 0 && it.r.every(r => REG[r].state === 'New Austin');
-  const reqsOf = it => [...(S.catReq[it.c] || []), ...(S.itemReq[it.id] || []), ...(inNewAustin(it) ? ['ch7'] : [])];
+  const reqsOf = it => [...(S.catReq[it.c] || []), ...(S.itemReq[it.id] || []), ...(it.q || []), ...(inNewAustin(it) ? ['ch7'] : [])];
   const needs = it => done.has(it.id) ? [] : [
     ...[...new Set(reqsOf(it))].filter(t => !met(t)),
     ...(chainPrev[it.id] || []).filter(id => !done.has(id)).map(id => 'item:' + id),
@@ -66,7 +66,7 @@
 
   function tokLabel(t) {
     const m = /^ch(\d)$/.exec(t);
-    if (m) return `Reach ${chName(+m[1])}`;
+    if (m) return +m[1] > CH.length ? 'Finish the story (after Epilogue Part 2)' : `Reach ${chName(+m[1])}`;
     if (t.startsWith('item:')) return `Collect “${ITEM[t.slice(5)].n}” first`;
     if (START[t]) return `Meet ${START[t].who} — “${START[t].mission}”`;
     if (MISSION[t]) return `Complete “${MISSION[t].n}”`;
@@ -180,6 +180,12 @@
       <button class="btn" data-tab="story">Open story progress</button></div>`;
   }, popOpts);
 
+  // no licensed screenshot set exists for every spot, so link straight to image and video results for that exact place
+  function lookLinks(q) {
+    const e = encodeURIComponent('RDR2 ' + q);
+    return `<div class="pop-links"><a href="https://www.google.com/search?tbm=isch&q=${e}" target="_blank" rel="noopener">📷 Photos of this spot</a>
+      <a href="https://www.youtube.com/results?search_query=${e}" target="_blank" rel="noopener">▶ Video</a></div>`;
+  }
   const unlockNames = s => esc(CAT[s.unlocks]?.name || s.unlocks);
   function startPopup(s) {
     const isDone = story.has(s.id);
@@ -189,6 +195,7 @@
       <div class="pop-sub">${esc(s.mission)} &middot; unlocks ${unlockNames(s)}</div>
       <p>${esc(s.d)}${s.approx ? ' <i>(approximate pin)</i>' : ''}</p>
       ${!reached(s.ch) ? `<p class="pop-rw">Not available until ${esc(chName(s.ch))}.</p>` : ''}
+      ${lookLinks(s.who + ' ' + s.mission + ' location')}
       <button class="btn ${isDone ? 'ghost' : ''}" data-story="${s.id}" data-on="${isDone ? 0 : 1}">${isDone ? 'Mark as not done' : '✓ Mark as done'}</button>
     </div>`;
   }
@@ -203,6 +210,7 @@
       ${it.d ? `<p>${esc(it.d)}</p>` : ''}
       ${it.rw ? `<p class="pop-rw">Set reward: ${esc(it.rw)}</p>` : ''}
       <div class="pop-reg">${it.r.map(r => esc(REG[r].name)).join(', ')}</div>
+      ${it.l.length ? lookLinks(`${c.name.replace(/s$/, '')} ${it.n} ${it.c === 'card' ? it.g : it.sub || ''} location`) : ''}
       <button class="btn ${isDone ? 'ghost' : ''}" data-toggle="${it.id}">${isDone ? 'Mark as not collected' : '✓ Mark as collected'}</button>
     </div>`;
   }
@@ -446,7 +454,7 @@
       const people = req.filter(t => START[t] || MISSION[t]).map(t => START[t] ? `meet ${START[t].who}` : `“${MISSION[t].n}”`);
       out.push(`<li class="opens-item"><span class="pin xs" style="--c:${c.color}"><img src="${ICON[c.id]}" alt=""></span>${esc(c.name)}${people.length ? ` <span class="muted">— ${esc(people.join(', '))}</span>` : ''}</li>`);
     }
-    const extra = D.items.filter(it => [...(S.itemReq[it.id] || []), ...(inNewAustin(it) ? ['ch7'] : [])].includes('ch' + n) && !(S.catReq[it.c] || []).includes('ch' + n));
+    const extra = D.items.filter(it => [...(S.itemReq[it.id] || []), ...(it.q || []), ...(inNewAustin(it) ? ['ch7'] : [])].includes('ch' + n) && !(S.catReq[it.c] || []).includes('ch' + n));
     if (extra.length) out.push(`<li class="opens-item muted">+ ${extra.length} more collectibles${n === 7 ? ' (New Austin opens)' : ''}</li>`);
     return out.length ? `<div class="opens"><div class="opens-h">Opens in this chapter</div><ul>${out.join('')}</ul></div>` : '';
   }

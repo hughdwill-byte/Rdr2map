@@ -53,23 +53,47 @@ for ll0,x in patpts['cigarette-card']:
   if ds[j]<2.5: used.add(j); ll=ignc[j]
   rw=re.findall(r'- (.+)',x['tips']); 
   add('card',re.sub(r'\W+','-',st.lower())+'-'+num,f'{nm}',[ll],clean(x['description']),grp=st,num=int(num),rw=', '.join(rw))
-# Treasure hunts
-hunts=[('jack','Jack Hall Gang',r'Jack Hall'),('stakes','High Stakes',r'High Stakes'),('poison','The Poisonous Trail',r'Poisonous'),('torn','Torn Treasure',r'Torn'),('morts','Le Trésor des Morts',r'Tresor'),('elemental','The Elemental Trail',r'Elemental'),('landmarks','Landmarks of Riches',r'Landmarks')]
-tm=I('Treasure Map')+I('Treasure')
-for hid,hname,rx in hunts:
-  ms=[m for m in tm if re.search(rx,sub(m))]
-  maps=sorted([m for m in ms if m['data']['markerType']=='Treasure Map'],key=lambda m:int(re.search(r'Map (\d)',sub(m)).group(1)))
-  fin=[m for m in ms if m['data']['markerType']=='Treasure']
-  steps=[]
-  for m in maps:
-    n=int(re.search(r'Map (\d)',sub(m)).group(1))
-    steps.append((f'map{n}',f'Map {n} location',P(m['lat'],m['lng']),desc(m) or ('Where you obtain the first map.' if n==1 else f'Follow map {n-1} to find map {n} here.')))
-  # final = treasure marker farthest from all map steps
-  if fin:
-    f=max(fin,key=lambda m:min(((m['lat']-s[2][0])**2+(m['lng']-s[2][1])**2) for s in steps))
-    if min(((f['lat']-s[2][0])**2+(f['lng']-s[2][1])**2)**.5 for s in steps)>1.5:
-      steps.append(('gold','Treasure (gold bars)',P(f['lat'],f['lng']),desc(f) or 'Final treasure location.'))
-  for sid,nm,ll,d in steps: add('treasure',f'{hid}-{sid}',nm,[ll],d,grp=hname)
+# Treasure hunts: step text from the wiki-checked rdr2-complete-guide data, pins from IGN (each checked against the named place)
+def tm(name):
+  for m in I('Treasure Map')+I('Treasure'):
+    if sub(m)==name or sub(m)+' | '+desc(m)==name: return P(m['lat'],m['lng'])
+  raise SystemExit('no treasure marker '+name)
+TH=[('jack','Jack Hall Gang','',[
+      ('map1',"Map 1: Máximo, near Flatneck Station",tm('Jack Hall Treasure Map 1'),"Buy or take Map 1 from Máximo on the ridge northwest of Flatneck Station (decline once and the price drops to $5)."),
+      ('map2',"Map 2: Caliban's Seat",tm('Jack Hall Gang Treasure Map 2'),"Follow Map 1 to Caliban's Seat to find Map 2."),
+      ('map3',"Map 3: Cotorra Springs",tm('Jack Hall Gang Treasure Map 3'),"Follow Map 2 to Cotorra Springs to find Map 3."),
+      ('gold',"Gold bars: O'Creagh's Run",tm('Jack Hall Gang Treasure 3'),"Follow Map 3 to O'Creagh's Run and collect the gold bars.")]),
+    ('stakes','High Stakes','',[
+      ('map1',"Map 1: the treasure hunter",tm('High Stakes Treasure Map 1'),"Take Map 1 from the treasure hunter between Diablo Ridge and Riggs Station (the \"All That Glitters\" encounter)."),
+      ('map2',"Map 2: behind Cumberland Falls",tm('High Stakes Treasure Map 2'),"Find Map 2 behind Cumberland Falls."),
+      ('map3',"Map 3: Barrow Lagoon",tm('High Stakes Treasure Map 3'),"Find Map 3 at Barrow Lagoon."),
+      ('gold',"Gold bars: near Fort Wallace",tm('High Stakes Treasure'),"Collect the treasure near Fort Wallace.")]),
+    ('poison','The Poisonous Trail','',[
+      ('map1',"Map 1: Cairn Lodge",tm('The Poisonous Trail Map 1'),"Find Map 1 in the lockbox under the bed at Cairn Lodge (Cairn Lake). It can't be bought, so don't miss it."),
+      ('map2',"Map 2: hollow tree at Face Rock",tm('Poisonous Trail Treasure Map 2'),"Find Map 2 in the hollow tree near Face Rock."),
+      ('map3',"Map 3: Serpent Mound",tm('Poisonous Trail Treasure Map 3'),"Find Map 3 at Serpent Mound."),
+      ('gold',"Gold bars: Elysian Pool cave",tm('Poisonous Trail Final Treasure'),"Collect 4 gold bars in the cave at Elysian Pool.")]),
+    ('morts','Le Trésor des Morts',' Pre-order bonus (PlayStation/Xbox digital pre-orders only).',[
+      ('map1',"Map 1: Limpany jail cell",tm('Les Tresor Des Morts Map 1 (Pre-Order Bonus Treasure Map)'),"Find Map 1 in the unburnt jail cell at Limpany."),
+      ('map2',"Riddle note: Saint Denis dock tunnels",tm('Les Tresor Des Morts Map 2 (Pre-Order Treasure Map)'),"Find the riddle note in the tunnels under the Saint Denis docks."),
+      ('gold',"Gold bars: Saint Denis cemetery",[-107.57,205.91],"Collect 6 gold bars in the mausoleum in the Saint Denis cemetery.")]),
+    ('torn','Torn Treasure Map (Mended Map)','',[
+      ('map2',"Map half: Hermit Woman's cabin",tm('Torn Treasure Map 2'),"Take the first map half from a drawer in the Hermit Woman's cabin near the source of Little Creek River."),
+      ('map1',"Map half: Manito Glade",tm('Torn Treasure Map 1'),"Take the second map half from the hermit's cottage at Manito Glade, north of Annesburg."),
+      ('gold',"Otis Miller's Revolver: west of Twin Rocks",tm('Torn Treasure'),"Collect Otis Miller's Revolver west of Twin Rocks. Only possible after Epilogue Part 1.")]),
+    ('landmarks','Landmarks of Riches',' Epilogue only.',[
+      ('map1',"Map 1: the Obelisk",tm('Landmarks of Riches Map 1 | Behind Obelisk'),"Inspect the obelisk on the hill northwest of Owanjila and take Map 1 from the plaque."),
+      ('map2',"Map 2: Tiny Church roof",tm('Landmarks of Riches Map 2 | Bell on top of church'),"Find Map 2 by the bell on the Tiny Church roof."),
+      ('map3',"Map 3: Mysterious Hill Home",tm('Landmarks of Riches Map 3 | On house, in window'),"Find Map 3 in a window of the Mysterious Hill Home."),
+      ('map4',"Map 4: tree at Bolger Glade",tm('Landmarks of Riches Map 4 | In bottom of tree on mound'),"Find Map 4 at the bottom of the tree on the mound at Bolger Glade."),
+      ('gold',"Gold bars: Mount Shann",tm('Landmarks of Riches | Under rock on sundial'),"Collect 6 gold bars under the rock on the sundial on Mount Shann.")]),
+    ('elemental','The Elemental Trail',' Epilogue Part 2 only.',[
+      ('map1',"Map 1: hanging corpse, Sea of Coronado",tm('Elemental Trail Map 1'),"Shoot the rope of the hanging corpse on the shore of the Sea of Coronado, southwest of Tumbleweed, and loot Map 1."),
+      ('map2',"Map 2: Greenhollow chimney",tm('Elemental Trail Map 2'),"Find Map 2 in the chimney at Greenhollow."),
+      ('map3',"Map 3: gutter near Benedict Point",tm('Elemental Trail Map 3'),"Find Map 3 on the gutter near Benedict Point."),
+      ('gold',"Treasure: Coot's Chapel",tm('Elemental Trail | Grave with wooden cross under tree'),"Collect the treasure at the grave with a wooden cross under the tree by Coot's Chapel.")])]
+for hid,hname,note,steps in TH:
+  for sid,nm,ll,d in steps: add('treasure',f'{hid}-{sid}',nm,[ll],d+note,grp=hname)
 # Graves (RDO precise)
 gn={'am':'Arthur Morgan','dc':'Davey Callander','ef':'Eagle Flies','hm':'Hosea Matthews','jc':'Jenny Kirk','kd':'Kieran Duffy','ls':'Lenny Summers','sg':'Susan Grimshaw','sm':'Sean MacGuire'}
 for l in rdo['sp_graves']:
@@ -99,28 +123,49 @@ EX=[[('Little Egret Plumes',5,birds(r'Little|^Egret'),'plume'),('Reddish Egret P
 for i,lst in enumerate(EX,1):
   for nm,cnt,locs,ic in lst:
     add('exotic',f'{i}-{re.sub(r"[^a-z]+","-",nm.lower()).strip("-")}',f'{nm} ×{cnt}',locs,'Markers show known spawn spots. Deliver to Algernon Wasp in Saint Denis.',grp=f'Exotics List #{i}',ic=ic)
-# Gang member requests
-GR=[('Dutch','Pipe','Chapter 2. Taken from a guarded cabin — watch for a grizzly.'),('Hosea','"The Case of the Shrew in the Fog" book','Chapters 2–4.'),('Hosea','American Ginseng','Chapter 3.'),('Pearson','Naval Compass','Chapters 2–4. Braithwaite Manor boathouse.'),('Pearson','Rabbit','Chapters 2–4, mornings behind the stew pot.'),('Lenny','Pocket Watch','Chapters 3–4.'),('Mary-Beth','Fountain Pen','Osman Grove house east of Emerald Ranch.'),('Jack','Penny Dreadful book','Found in several shacks/huts around the map.'),('Kieran','Burdock Root',''),('Javier','Oleander Sage','Reward: poison knives.'),('Charles','Moonshine','Reward: fire arrows.'),('Sean','Kentucky Bourbon','Buy at a general store.'),('Bill','Hair Pomade','Buy at a general store. Reward: repeater ammo.'),('Molly','Pocket Mirror','Chapter 3.'),('Sadie','Harmonica','Chapters 3–4.'),('Tilly','Necklace','Found in safes around the world.'),('Susan','Seasoning herbs','Chapters 3–4.')]
-for i,(who,what,d) in enumerate(GR,1): add('gang',f'{i:02d}',f'{who}: {what}',[],d,grp=who)
+# Gang member requests (wiki-checked list from rdr2-complete-guide, MIT)
+CHN={'chapter-2':'Chapter 2','chapter-3':'Chapter 3','chapter-4':'Chapter 4','epilogue-2':'Epilogue Part 2'}
+for i,r in enumerate(json.load(open('rdr2-complete-guide/src/data/itemRequests.json')),1):
+  av=r['availability']; chs=av['availableChapterIds']
+  when=CHN[chs[0]]+('–'+CHN[chs[-1]].split()[-1] if len(chs)>1 else '')
+  win=next((q['window'] for q in av.get('requirements',[]) if q.get('kind')=='time-of-day'),'')
+  title=re.sub(r' for [A-Z][\w-]*( \(\d\))?$','',r['title'])
+  add('gang',f'{i:02d}',f"{r['requester']}: {title}",[],f"{when}{', '+win if win else ''}. {r['description']}",grp=r['requester'],q=[{'chapter-2':'ch2','chapter-3':'ch3','chapter-4':'ch4','epilogue-2':'ch8'}[chs[0]]])
 # Unique weapons & hats
 for t,g in (('Weapon','Weapons'),('Hat','Hats')):
   for m in I(t): add('gear',re.sub(r'\W+','-',sub(m).lower()).strip('-'),sub(m),[P(m['lat'],m['lng'])],desc(m),grp=g,ic='weapon' if t=='Weapon' else 'hat')
 
+# Snap to game-data positions where available (RDOMap game data via rdr2-complete-guide, MIT)
+Mv=np.load('Mv.npy'); VM=json.load(open('rdr2-complete-guide/src/data/mapMarkers.json'))
+def vpt(m): return P(*(np.array([m['x'],m['y'],1])@Mv))
+def norm(t): return re.sub(r'[^a-z]','',t.lower().replace('legendary',''))
+ALIAS={'bullgator':'bullgator','pronghornram':'pronghorn','bighornram':'bighornram','gar':'longnosegar','sturgeon':'lakesturgeon','giaguaropanther':'giaguaropanther','bharatigrizzlybear':'bharatigrizzlybear'}
+for typ,cat in (('legendary-animal','animal'),('legendary-fish','fish')):
+  vm={norm(m['title']):m for m in VM if m['type']==typ}
+  for it in items:
+    if it['c']!=cat: continue
+    k=norm(it['n']); k=ALIAS.get(k,k)
+    if k in vm: it['l']=[vpt(vm[k])]
+    else: print('no game match',it['n'],k)
+for typ,cat in (('dreamcatcher','dream'),('rock-carving','carving')):
+  for m in [m for m in VM if m['type']==typ]:
+    ll=vpt(m); it=min((i for i in items if i['c']==cat),key=lambda i:(i['l'][0][0]-ll[0])**2+(i['l'][0][1]-ll[1])**2); it['l']=[ll]
+
 # Valuable stashes: gold bars, homestead stashes and other sellable valuables
 AP=' (Pin is approximate; look around the spot.)'
-GB=[('limpany','Limpany Sheriff\'s Office',(-87.4,141.3),'1 gold bar ($500 at a fence). In a lockbox under the desk in the burnt-out Sheriff\'s office, northwest end of Limpany. From Chapter 2.'),
+GB=[('limpany','Limpany Sheriff\'s Office',(-88.635,142.488),'1 gold bar ($500 at a fence). In a lockbox under the desk in the burnt-out Sheriff\'s office, northwest end of Limpany. From Chapter 2.'),
     ('train-wreck','Train wreck below Cotorra Springs',(-49.6,149.2),'2 gold bars ($1,000), plus aged pirate rum. In the wrecked train at the bottom of the ravine east of Granite Pass, southwest of Cotorra Springs.'+AP),
-    ('strange-statues','Strange Statues cave',(-45.27,166.27),'3 gold bars ($1,500). Study the cave painting at Window Rock first, then press the statues showing 2, 3, 5 and 7 fingers in this hidden cave.'),
-    ('braithwaite','Braithwaite Manor ruins',(-122.0,170.4),'1 gold bar. After Chapter 4, enter the burnt main house, go into the room past the body and check the lockbox by the west wall.'),
-    ('shady-belle','Shady Belle',(-124.0,188.7),'1 gold bar. Missable: during the Chapter 3 mission that clears Shady Belle, search the dresser opposite the bed in the upstairs bedroom before going downstairs.')]
+    ('strange-statues','Strange Statues cave',(-45.27,167.13),'3 gold bars ($1,500). Study the cave painting at Window Rock first, then press the statues showing 2, 3, 5 and 7 fingers in this hidden cave.'),
+    ('braithwaite','Braithwaite Manor ruins',(-122.17,170.5),'1 gold bar. After Chapter 4, enter the burnt main house, go into the room past the body and check the lockbox by the west wall.'),
+    ('shady-belle','Shady Belle',(-125.65,188.91),'1 gold bar. Missable: during the Chapter 3 mission that clears Shady Belle, search the dresser opposite the bed in the upstairs bedroom before going downstairs.')]
 for k,n,ll,d in GB: add('loot',f'gold-{k}',n,[P(*ll)],d,grp='Gold Bars',ic='goldbar')
-HS=[('chez-porter','Chez Porter',(-66.1,141.4),'North of Valentine. Climb the ladder to the upper floor of the barn: the stash box by the haystacks holds cash and a jewelry bag.'+AP),
-    ('aberdeen','Aberdeen Pig Farm',(-86.6,186.6),'Southeast of Emerald Ranch. Stash is behind the portrait opposite the front door; a shotgun is in the cellar. Don\'t drink anything you\'re offered.'+AP),
-    ('catfish','Catfish Jackson\'s',(-132.9,176.7),'South of Braithwaite Manor. The stash is in the chimney under the hanging double-barrel shotgun.'),
-    ('lonnie','Lonnie\'s Shack',(-90.0,181.6),'South of Emerald Station (visited with Sean in Chapter 3). Moonshine shack with a stash inside.'+AP),
-    ('van-horn','Van Horn Mansion',(-79.4,208.1),'Just south of Van Horn. The stash is on the centre table down the stairs.'),
-    ('watson','Watson\'s Cabin',(-71.5,111.2),'Northwest of Wallace Station, up the road along Little Creek River. Semi-auto shotgun in the cellar; return later for a lockbox on the kitchen table.'),
-    ('willard','Willard\'s Rest',(-39.4,211.6),'Far northeast Roanoke Ridge. Chapter 6+ only: help the widow Charlotte and she leaves you a box of money.')]
+HS=[('chez-porter','Chez Porter',(-48.39,140.59),'In Ambarino, north of Valentine across the Dakota River. Climb the ladder to the upper floor of the barn: the stash box by the haystacks holds cash and a jewelry bag.'),
+    ('aberdeen','Aberdeen Pig Farm',(-85.78,185.87),'Southeast of Emerald Ranch. Stash is behind the portrait opposite the front door; a shotgun is in the cellar. Don\'t drink anything you\'re offered.'),
+    ('catfish','Catfish Jackson\'s',(-132.17,176.25),'South of Braithwaite Manor. The stash is in the chimney under the hanging double-barrel shotgun.'),
+    ('lonnie','Lonnie\'s Shack',(-91.56,182.82),'South of Emerald Station (visited with Sean in Chapter 3). Moonshine shack with a stash inside.'),
+    ('van-horn','Van Horn Mansion',(-80.25,210.45),'Just south of Van Horn. The stash is on the centre table down the stairs.'),
+    ('watson','Watson\'s Cabin',(-71.3,112.76),'Northwest of Wallace Station, up the road along Little Creek River. Semi-auto shotgun in the cellar; return later for a lockbox on the kitchen table.'),
+    ('willard','Willard\'s Rest',(-39.39,210.29),'Far northeast Roanoke Ridge. Chapter 6+ only: help the widow Charlotte and she leaves you a box of money.')]
 for k,n,ll,d in HS: add('loot',f'home-{k}',n,[P(*ll)],d,grp='Homestead Stashes',ic='stash')
 for t in ('Rare Item','Treasure'):
   for m in I(t):

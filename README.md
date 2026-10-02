@@ -20,6 +20,7 @@ Static site, no build step. GitHub → Settings → Pages → *Deploy from a bra
 - Dinosaur bones, graves, orchids, alligator eggs and the game-style icons: [jeanropke/RDOMap](https://github.com/jeanropke/RDOMap) (public domain).
 - Cigarette card sets, numbers and descriptions: [patreiCH72/rdr2-interactive-map](https://github.com/patreiCH72/rdr2-interactive-map) (MIT).
 - Everything else (rock carvings, dreamcatchers, treasure, legendaries, gear): IGN marker data via the0neWhoKnocks.
+- Story missions, gang item requests, treasure-hunt steps, and game-data positions for homesteads, gang camps, legendary animals/fish, dreamcatchers and rock carvings: [Victor-Jnr/rdr2-complete-guide](https://github.com/Victor-Jnr/rdr2-complete-guide) (MIT; wiki-checked, positions from RDOMap game data).
 - Region borders are approximate: generated from the map art (water = border) with seed points per region.
 
 `tools/` holds the Python scripts that align the three datasets into one coordinate system and generate `data.js` (run them next to clones of the repos above).

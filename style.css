@@ -149,7 +149,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outl
 .pop-sub { margin-top: 6px; font-size: 12px; color: var(--gold); }
 .pop p { margin: 8px 0; color: #d8cbb2; }
 .pop .pop-rw { font-size: 12px; color: var(--muted); }
-.pop-reg { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.pop-reg { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.pop-links { display: flex; gap: 8px; margin-bottom: 10px; }
+.pop-links a { flex: 1; text-align: center; padding: 8px 6px; border-radius: 6px; border: 1px solid var(--line); color: var(--gold); text-decoration: none; font-size: 13px; min-height: 36px; }
+.pop-links a:hover { border-color: var(--gold); }
 .btn { width: 100%; padding: 8px 10px; border-radius: 6px; background: var(--red); color: #fff; font-weight: 600; }
 .btn:hover { background: #c8362d; }
 .btn.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
