@@ -106,11 +106,13 @@
   // ---- map ----
   const bounds = L.latLngBounds([-190, 0], [0, 256]);
   const map = L.map('map', {
-    crs: L.CRS.Simple, minZoom: 1, maxZoom: 9, zoomSnap: 0.5, zoomControl: false,
-    maxBounds: bounds.pad(0.15), maxBoundsViscosity: 0.8,
+    crs: L.CRS.Simple, minZoom: 1, maxZoom: 9, zoomControl: false,
+    // free zoom (no snapping after a pinch), smooth wheel, firm edges, gentle glide after a flick
+    zoomSnap: 0, zoomDelta: 0.5, wheelPxPerZoomLevel: 90, wheelDebounceTime: 20,
+    maxBounds: bounds.pad(0.15), maxBoundsViscosity: 1, inertiaDeceleration: 2600, easeLinearity: 0.25,
   });
   L.tileLayer('tiles/{z}/{x}_{y}.jpg', {
-    bounds, noWrap: true, minNativeZoom: 2, maxNativeZoom: 7,
+    bounds, noWrap: true, minNativeZoom: 2, maxNativeZoom: 7, keepBuffer: 4, updateWhenZooming: false,
     attribution: 'Map &copy; Rockstar Games &middot; data: <a href="https://github.com/jeanropke/RDOMap">RDOMap</a>, <a href="https://github.com/the0neWhoKnocks/red-dead-redemption-2-map">rdr2-map</a>',
   }).addTo(map);
   if (canHover) L.control.zoom({ position: 'topright' }).addTo(map); // touch screens pinch instead
@@ -119,8 +121,9 @@
   const sheetH = () => sheet === 'peek' ? 150 + (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0) : $('side').offsetHeight;
   const sheetPad = () => mobileMQ.matches ? { paddingTopLeft: [16, 60], paddingBottomRight: [16, sheetH() + 16] } : { padding: [30, 30] };
   const goHome = (animate = true) => animate ? map.flyToBounds(HOME, { ...sheetPad(), duration: 0.8 }) : map.fitBounds(HOME, sheetPad());
-  const setZoomClass = () => map.getContainer().dataset.zoom = Math.max(2, Math.min(6, Math.floor(map.getZoom())));
-  map.on('zoomend', setZoomClass); setZoomClass();
+  // pins grow smoothly with zoom (18px far out -> 32px close in), updated every animation frame
+  const setPinSize = () => map.getContainer().style.setProperty('--ps', Math.round(Math.max(18, Math.min(32, 18 + (map.getZoom() - 2) * 4.7))) + 'px');
+  map.on('zoom', setPinSize); setPinSize();
 
   // regions
   const regionLayers = {};
