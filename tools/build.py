@@ -239,6 +239,106 @@ for it in items:
       break
 print('item images:',sum('img' in i for i in items),{c:sum(1 for i in items if i['c']==c and 'img' in i) for c in ART})
 
+# Exploring: points of interest (rdr2-interactive-map, MIT), secret encounters and free early weapons (guides: pcgamer, screenrant, powerpyx).
+POI_GRP={'Hidden loot':['Abandoned Trading Post','Old Tomb','Pagan Ritual','Native Burial Site','Strange Statues Cave','Strange Statues - Painting','Jesuit Missionary','Oil Derrick','Coal Mine Writing'],
+ 'Strange & macabre':["Braithwaites' Secret","Devil's Cave",'Donkey Lady','Faces in Trees','Fossilized Man','Giant Remains','Hermit Woman','Manmade Mutant','Meditating Monk','Meteor House','Meteorite',
+   'Mysterious Hill Home','Old World Scripts','Warped Tree','Withered Arm',"Gray's Secret",'Frozen Settler','Barrel Rider','Crashed Airship','Flying Machine','Painting in Cabin','Circus Wagons','Phonograph']}
+POI_Q={"Gray's Secret":['a-short-walk-in-a-pretty-town'],'Painting in Cabin':['ch3']}
+for p in pat:
+  if p['category']!='point-of-interest': continue
+  n=p['name']; g=next((k for k,v in POI_GRP.items() if n in v),'Mysterious Aztec writing (Blackwater)' if n.startswith('Mysterious Aztec') else 'Landmarks & history')
+  d=clean(p.get('description')) or 'Walk up to it to add it to your journal.'
+  if n=='Painting in Cabin': n='Changing painting'; d='A painter\'s cabin: the canvas on the easel changes every time you come back. '+d
+  if n=='Mysterious Hill Home': d='A cult cabin with a note inside. Leave, come back at 2am and wait inside: a UFO appears overhead.'
+  add('poi',re.sub(r'\W+','-',n.lower()).strip('-'),n,[tp(p['x'],p['y'])],d,grp=g,**({'q':POI_Q[n]} if n in POI_Q else {}))
+SECRETS=[('ufo-shann','UFO over Mount Shann',[P(-83.68,104.83)],'Climb Mount Shann and wait at 1am: a UFO hovers beyond the rocks. Pin approx.',[]),
+ ('vampire','Vampire of Saint Denis',[P(-110.2,205.6)],'Find the five vampire scrawls on walls around Saint Denis; the last points to a dark alley near the church. Go there at night to meet the vampire. Pin approx.',['ch4']),
+ ('agnes','Ghost of Agnes Dowd',[P(-90.5,201.5)],'Bluewater Marsh, only between 9pm and 3am. Listen for wailing and use binoculars: she vanishes if you get close. Pin approx.',['ch3']),
+ ('ghost-train','Ghost train',[P(-104.5,165.0)],'At 3am by the railway near the “Welcome to Lemoyne” sign in Scarlett Meadows a phantom train rushes past. Pin approx.',['ch3']),
+ ('night-folk','Night Folk',[P(-96.5,196.0)],'Bluewater Marsh at night: a crying woman or bodies hanging from trees are a trap. Night Folk come out of the dark to attack. Pin approx.',['ch3'])]
+for k,n,ll,d,q in SECRETS: add('secret',k,n,ll,d,grp='Supernatural & secret encounters',**({'q':q} if q else {}))
+EARLY=[('schofield','Schofield Revolver',(-68.65,143.18),'Free in the back room of the Valentine doctor\'s office. A big upgrade over the Cattleman in Chapter 2.'),
+ ('lancaster','Lancaster Repeater',(-113.03,176.65),'Free in the basement of the Rhodes gunsmith. One of the best all-round guns; also handed to you in "An American Pastoral Scene".'),
+ ('pump-shotgun','Pump-Action Shotgun',(-48.39,140.59),'Upstairs in a weapon case in the big house at Chez Porter, north of Valentine (money in the barn too).'),
+ ('semi-shotgun','Semi-Automatic Shotgun',(-71.3,112.76),'In the cellar at Watson\'s Cabin, northwest of Wallace Station.')]
+for k,n,ll,d in EARLY: add('early',k,n,[P(*ll)],d+' Available from Chapter 2.',grp='Free early weapons',q=['ch2'])
+# Talismans & trinkets (story mode). Effects/costs/recipes per rdr2.org, shacknews, powerpyx, gamerant guides; pickups
+# snapped to game-data chests where one sits at the described spot, otherwise placed by area (marked).
+LEGLOC={i['id'].split('-',1)[1]:i['l'][0] for i in items if i['c']=='animal'}
+FENCE_NAMES=dict(FENCES)
+def near_fence(ll): return min(FENCES,key=lambda f:(f[1][0]-ll[0])**2+(f[1][1]-ll[1])**2)
+TRINKET_CRAFT=[  # (id, name, legendary key, legendary name, cost, effect)
+ ('buck','Buck Antler Trinket','buck','Legendary Buck','$22.00','Skinning gives higher-quality pelts and parts.'),
+ ('beaver','Beaver Tooth Trinket','beaver','Legendary Beaver','$18.25','Weapons degrade 10% slower.'),
+ ('cougar','Cougar Fang Trinket','cougar','Legendary Cougar','$20.50','+10% Stamina experience.'),
+ ('coyote','Coyote Fang Trinket','coyote','Legendary Coyote','$21.25','+10% Dead Eye experience.'),
+ ('elk','Elk Antler Trinket','elk','Legendary Elk','$22.75','+10% money looted from bodies.'),
+ ('fox','Fox Claw Trinket','fox','Legendary Fox','$23.50','+5 seconds of Eagle Eye.'),
+ ('moose','Moose Antler Trinket','moose','Legendary Moose','$19.00','+10% Health experience.'),
+ ('panther','Panther Eye Trinket','panther','Legendary Giaguaro Panther','$25.00','Dead Eye drains 10% slower for its first 3 seconds.'),
+ ('pronghorn','Pronghorn Horn Trinket','pronghorn','Legendary Pronghorn Ram','$24.50','Carcasses on your horse don\'t rot.'),
+ ('ram','Ram Horn Trinket','ram','Legendary Big Horn Ram','$17.50','Double yield when picking thyme, oregano and mint.'),
+ ('bison','Bison Horn Trinket (Tatanka)','tatanka-bison','Legendary Tatanka Bison','$16.75','10% less melee damage taken.'),
+ ('wolf','Wolf Heart Trinket','wolf','Legendary Wolf','$16.00','You can drink twice as much before getting drunk.')]
+for k,n,lk,ln,cost,eff in TRINKET_CRAFT:
+  ll=LEGLOC[lk]; fn,fl=near_fence(ll)
+  add('trinket',k,n,[P(*fl)],f'Effect: {eff} How to get: hunt and skin the {ln}, then craft it at any Fence for {cost} plus its part. Pin: the fence nearest that legendary ({fn}).',grp='Trinkets: crafted from legendary animals',q=[f'item:animal-{lk}'])
+TAL=[('alligator','Alligator Tooth Talisman','alligator','Legendary Bull Gator','Dead Eye core drains 10% slower.','Vintage Civil War Handcuffs (reward from the cigarette card collector, "Smoking and Other Hobbies") and a Gold Jointed Bracelet (random jewellery loot from houses and bodies).'),
+     ('bear','Bear Claw Talisman','grizzly-bear','Legendary Bharati Grizzly Bear','Health core drains 10% slower.','a Silver Chain Bracelet (Watson\'s Cabin jewellery box, which refills) and a Quartz Chunk (reward from Deborah MacGuinness for the dinosaur bones, "A Test of Faith").'),
+     ('boar','Boar Tusk Talisman','boar','Legendary Boar','Your horse\'s Health and Stamina cores drain 10% slower.','a Gold Earring (Watson\'s Cabin jewellery box) and Cobalt Petrified Wood (chest under a rock overhang just northwest of Lake Isabella).'),
+     ('bison','Bison Horn Talisman','white-bison','Legendary White Bison','Stamina core drains 10% slower.','an Abalone Shell Fragment (in the old house just north of the Rhodes Sheriff\'s office) and a Silver Earring (Watson\'s Cabin jewellery box).')]
+COMP={'watson':((-71.3,112.76),"Watson's Cabin jewellery box"),'cobalt':((-46.47,108.53),'Cobalt Petrified Wood chest'),'abalone':((-110.85,175.67),'Abalone Shell Fragment house (approx)')}
+for k,n,lk,ln,eff,parts in TAL:
+  ll=LEGLOC[lk]; fn,fl=near_fence(ll)
+  comp={'bear':'watson','boar':'cobalt','bison':'abalone'}.get(k)
+  add('trinket','t-'+k,n,[P(*fl)],f'Effect: {eff} How to get: skin the {ln} for its part, then craft at any Fence with {parts} Pin: the fence nearest that legendary ({fn}).',grp='Talismans',q=[f'item:animal-{lk}'],**({'to':[P(*COMP[comp][0]),COMP[comp][1]]} if comp else {}))
+add('trinket','t-raven','Raven Claw Talisman',[P(-91.5,106.5)],'Effect: weapons degrade 20% slower. How to get: find all 10 rock carvings for Francis Sinclair ("Geology for Beginners"), then take the Old Brass Compass from his cabin (pin, approx) and craft at a Fence.',grp='Talismans',q=['start-sinclair'])
+add('trinket','t-eagle','Eagle Talon Talisman',[],'Effect: +5 seconds of Eagle Eye. Special/Ultimate Edition bonus: already in your Wardrobe from Chapter 2.',grp='Talismans',q=['ch2'])
+FOUND=[('cat','Cat Eye Trinket',(-123.64,162.88),'Lockbox on the southernmost island of Flat Iron Lake, just west of Braithwaite Manor. Swim or take a boat.',None),
+       ('hawk','Hawk Talon Trinket',(-40.4,108.38),'Lockbox at a destroyed camp near the top of Deadboot Creek, Grizzlies West (pin approx). Effect: holding a drawn bow drains Stamina 30% slower.',None),
+       ('shark','Shark Tooth Trinket',(-55.6,226.0),'Lockbox among wooden crates beside the shipwreck: follow the shore east from Annesburg as far as you can go (pin approx). Effect: +10% horse bonding.',None),
+       ('turtle','Turtle Shell Trinket',(-153.95,26.05),'Under the stairs of the largest building at Gaptooth Breach (a gang hideout: clear it first). Effect: Health refills 10% faster.',['ch7']),
+       ('crow','Crow Beak Trinket',None,'Final reward of The Elemental Trail treasure hunt, at Coot\'s Chapel. Effect: +10% ammo looted from bodies.',['ch7'])]
+EL=[i for i in items if i['id']=='treasure-elemental-gold'][0]['l'][0]
+for k,n,ll,d,q in FOUND:
+  add('trinket',k,n,[P(*(ll or EL))],d,grp='Trinkets: found in the world',**({'q':q} if q else {}))
+add('trinket','owl','Owl Feather Trinket',[],'Effect: Health, Stamina and Dead Eye cores drain 15% slower. Missable Chapter 6 reward (per guides: "Archeology for Beginners", finished without killing anyone).',grp='Trinkets: found in the world',q=['ch6'])
+add('trinket','iguana','Iguana Scale Trinket',[],'Effect: 10% less damage while on horseback. Special/Ultimate Edition bonus.',grp='Trinkets: found in the world',q=['ch2'])
+# Hunting requests: pin each animal at its densest spawn cluster (RDOMap spawn points) and name the post office to mail it from.
+POST={'Valentine':(-72.32,145.46),'Strawberry':(-93.46,112.47),'Rhodes':(-112.45,174.66),'Saint Denis':(-114.6,206.31),'Van Horn':(-73.53,211.27),
+      'Annesburg':(-58.57,210.3),'Emerald Station':(-76.22,180.82),'Wallace Station':(-77.06,122.13),'Riggs Station':(-97.44,126.43),'Blackwater':(-113.12,130.95),'Armadillo':(-139.64,71.51),'Tumbleweed':(-157.81,40.42)}
+HUNT_WILD={'squirrel':'animal_squirrel_grey','rabbit':'animal_rabbit','cardinal':'animal_cardinal','rat':'animal_rat_black','woodpecker':'animal_woodpecker_redbellied',
+  'chipmunk':'animal_chipmunk','oriole':'animal_oriole_baltimore','robin':'animal_robin','opossum':'animal_possum','sparrow':'animal_sparrow_eurasian',
+  'songbird':'animal_songbird_scarlet','toad':'animal_toad','bullfrog':'animal_frogbull','skunk':'animal_skunk','waxwing':'animal_cedarwaxwing',
+  'bat':'animal_bat','blue-jay':'animal_bluejay','crow':'animal_crow','beaver':'animal_beaver'}
+from collections import Counter as _C
+def hotspot(wid, epilogue):
+  pts=json.load(open(f'wild/{wid}.json'))['p']
+  ok=[p for p in pts if epilogue or meta.get(region(*p) or '',[None,''])[1]!='New Austin']
+  cells=_C((int(p[0]//3),int(p[1]//3)) for p in ok)
+  (cy,cx),n=cells.most_common(1)[0]
+  inside=[p for p in ok if (int(p[0]//3),int(p[1]//3))==(cy,cx)]
+  return P(sum(p[0] for p in inside)/len(inside),sum(p[1] for p in inside)/len(inside)),n
+for it in items:
+  if it['c']!='hunt': continue
+  k=it['id'].split('-',2)[2]; wid=HUNT_WILD[k]; ep=it['g'].endswith('#5')
+  ll,n=hotspot(wid,ep)
+  po=min(POST.items(),key=lambda kv:(kv[1][0]-ll[0])**2+(kv[1][1]-ll[1])**2)
+  it['l']=[ll]; it['wild']=wid
+  it['d']=(f'Pin: the densest cluster of its spawn points ({n} close together). Kill it cleanly with the right weapon (3-star animal, see the Wildlife tab), '
+           f'pick up the carcass without skinning it, then mail it to Mrs. L. Hobbs at a post office: the nearest is {po[0]}. '
+           'Collect her reward there 24 hours later to get the next request.' + (' Epilogue only.' if ep else ''))
+  it['to']=[P(*po[1]),po[0]+' post office']
+# fan out pins that share a spot (several trinkets crafted at one fence, fence-sold pamphlets) so each stays tappable
+import math as _m
+_spots={}
+for it in items:
+  if it['c'] in ('trinket','pamph'):
+    for j,l in enumerate(it['l']): _spots.setdefault(tuple(l),[]).append((it,j))
+for k,lst in _spots.items():
+  if len(lst)<2: continue
+  for n,(it,j) in enumerate(lst):
+    a=2*_m.pi*n/len(lst); it['l'][j]=P(k[0]+0.45*_m.sin(a),k[1]+0.45*_m.cos(a))
 # regions per item
 for it in items:
   it['lr']=[region(*l) for l in it['l']]
@@ -246,7 +346,7 @@ for it in items:
 CATS=[('dino','Dinosaur Bones','main','#e3a33b'),('carving','Rock Carvings','main','#6fb3c9'),('dream','Dreamcatchers','main','#d1584b'),('card','Cigarette Cards','main','#c9a86a'),('treasure','Treasure Maps','main','#e6c23e'),('grave','Graves','main','#9aa6b8'),
       ('animal','Legendary Animals','hunt','#d98a3d'),('fish','Legendary Fish','hunt','#4fa3d9'),('hunt','Hunting Requests','hunt','#8fbf5a'),
       ('exotic','Exotics','side','#b77fd1'),('gang','Gang Member Requests','side','#d9a07a'),('gear','Unique Weapons & Hats','side','#c7c7c7'),
-      ('loot','Valuable Stashes','money','#e8b923'),('pamph','Crafting Pamphlets','side','#d4b483')]
+      ('loot','Valuable Stashes','money','#e8b923'),('pamph','Crafting Pamphlets','side','#d4b483'),('trinket','Talismans & Trinkets','side','#9fd0c7'),('early','Free Early Weapons','explore','#e07b5a'),('secret','Secrets & Supernatural','explore','#8f86e0'),('poi','Points of Interest','explore','#c2b280')]
 from collections import Counter; print(Counter(i['c'] for i in items)); print('no region:',[i['id'] for i in items if i['l'] and not i['r']])
 out={'cats':[dict(id=a,name=b,group=c,color=d) for a,b,c,d in CATS],'regions':[dict(id=k,name=v[0],state=v[1]) for k,v in meta.items()],'geo':json.load(open('regions.geojson')),'items':items}
 open('data.js','w').write('// Generated by build.py — see README for sources.\nwindow.RDR={};RDR.data='+json.dumps(out,ensure_ascii=False,separators=(',',':'))+';\n')

@@ -8,12 +8,12 @@
   const MISSION = {};
   for (const ch of CH) for (const [id, n, opt] of ch.missions) MISSION[id] = { id, n, opt: !!opt, ch: ch.n };
   const START = Object.fromEntries(S.starts.map(s => [s.id, s]));
-  const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items', money: 'Money & valuables' };
-  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot', 'pamph']);
+  const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items', money: 'Money & valuables', explore: 'Exploring & secrets' };
+  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot', 'pamph', 'trinket', 'poi', 'secret', 'early']);
   const ICON = {
     dino: 'icons/dino.png', carving: 'icons/carving.png', dream: 'icons/dream.png', card: 'icons/card.svg',
     treasure: 'icons/treasure.png', grave: 'icons/grave.png', animal: 'icons/animal.png', fish: 'icons/fish.png',
-    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg', pamph: 'icons/pamphlet.svg',
+    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg', pamph: 'icons/pamphlet.svg', trinket: 'icons/trinket.svg', poi: 'icons/poi.svg', secret: 'icons/secret.svg', early: 'icons/weapon.svg',
   };
   const iconOf = it => it.ic ? (/^(weapon|hat|goldbar|stash)$/.test(it.ic) ? `icons/${it.ic}.svg` : `icons/${it.ic}.png`) : ICON[it.c];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -24,7 +24,7 @@
   const done = new Set(load('rdr2map.done', []).filter(id => ITEM[id]));
   const story = new Set(load('rdr2map.story', []));
   // ponytail: exotics have ~250 spawn markers, so they start hidden to keep the first view readable
-  const hiddenCats = new Set(load('rdr2map.hiddenCats', ['exotic']));
+  const hiddenCats = new Set(load('rdr2map.hiddenCats', ['exotic', 'poi']));
   const openCats = new Set(load('rdr2map.openCats', []));
   const openChs = new Set(load('rdr2map.openChs', []));
   let showDone = load('rdr2map.showDone', false);
@@ -41,7 +41,7 @@
   const chDone = n => story.has('chdone-' + n);
   const reached = n => n <= 1 || chDone(n - 1);
   const currentCh = () => { for (const c of CH) if (!chDone(c.n)) return c.n; return CH.length + 1; };
-  const met = t => { const m = /^ch(\d)$/.exec(t); return m ? reached(+m[1]) : story.has(t); };
+  const met = t => { const m = /^ch(\d)$/.exec(t); return m ? reached(+m[1]) : t.startsWith('item:') ? done.has(t.slice(5)) : story.has(t); };
 
   // collections that open in order: treasure steps one by one, hunting/exotic lists one list at a time
   const chainPrev = {};
@@ -124,6 +124,7 @@
 
   // regions
   const regionLayers = {};
+  let popupClosedAt = 0;
   const regionStyle = id => {
     if (region === id) return { color: '#f2d27a', weight: 2.5, fillColor: '#f2d27a', fillOpacity: 0.06, dashArray: null };
     return { color: '#5a1c14', weight: 1, opacity: 0.35, fillOpacity: 0, dashArray: '4 4' };
@@ -139,7 +140,7 @@
       }, { sticky: true, className: 'region-tip', direction: 'top', offset: [0, -8] });
       layer.on('mouseover', () => { if (region !== id) layer.setStyle({ fillColor: '#f2d27a', fillOpacity: 0.16, weight: 2, color: '#f2d27a', opacity: 0.9 }); });
       layer.on('mouseout', () => layer.setStyle(regionStyle(id)));
-      layer.on('click', () => selectRegion(id));
+      layer.on('click', () => { if (Date.now() - popupClosedAt > 400) selectRegion(id); }); // a tap that only closes a popup keeps the view
     },
   }).addTo(map);
 
@@ -214,10 +215,11 @@
       ${it.rw ? `<p class="pop-rw">Set reward: ${esc(it.rw)}</p>` : ''}
       <div class="pop-reg">${it.r.map(r => esc(REG[r].name)).join(', ')}</div>
       ${it.l.length ? lookLinks(`${c.name.replace(/s$/, '')} ${it.n} ${it.c === 'card' ? it.g : it.sub || ''} location`) : ''}
+      ${it.wild || it.to ? `<div class="pop-links">${it.wild ? `<button class="btn ghost sm" data-habitat="${it.wild}">Show where it lives</button>` : ''}${it.to ? `<button class="btn ghost sm" data-goto="${it.to[0].join(',')}">${it.c === 'hunt' ? 'Deliver' : 'Part'}: ${esc(it.to[1])}</button>` : ''}</div>` : ''}
       <button class="btn ${isDone ? 'ghost' : ''}" data-toggle="${it.id}">${isDone ? 'Mark as not collected' : '✓ Mark as collected'}</button>
     </div>`;
   }
-  map.on('popupclose', () => document.body.classList.remove('popup-open'));
+  map.on('popupclose', () => { document.body.classList.remove('popup-open'); popupClosedAt = Date.now(); });
   map.on('popupopen', e => {
     document.body.classList.add('popup-open');
     if (mobileMQ.matches && sheet !== 'peek') setSheet('peek');
@@ -226,6 +228,10 @@
     if (b) b.onclick = () => { map.closePopup(); toggle(b.dataset.toggle); };
     const s = el.querySelector('[data-story]');
     if (s) s.onclick = () => { map.closePopup(); setStory(s.dataset.story, s.dataset.on === '1'); };
+    const h = el.querySelector('[data-habitat]');
+    if (h) h.onclick = () => { map.closePopup(); setWild(h.dataset.habitat, true); };
+    const g = el.querySelector('[data-goto]');
+    if (g) g.onclick = () => { map.closePopup(); flyToPoint(g.dataset.goto.split(',').map(Number), null); };
     const t = el.querySelector('[data-tab]');
     if (t) t.onclick = () => { map.closePopup(); setTab('story'); if (mobileMQ.matches) setSheet('full'); };
   });
@@ -385,10 +391,10 @@
       const n = needs(it);
       if (!n.length) { html += itemRow(it); continue; }
       const k = n.join('|');
-      lockedBy.set(k, (lockedBy.get(k) || 0) + 1);
+      lockedBy.set(k, [...(lockedBy.get(k) || []), it]);
     }
-    for (const [k, count] of lockedBy) {
-      html += `<li class="locked-row"><div class="lock-h">🔒 ${count} more unlock after:</div><ul class="chips">${k.split('|').map(chip).join('')}</ul></li>`;
+    for (const [k, its] of lockedBy) {
+      html += `<li class="locked-row"><div class="lock-h">🔒 ${its.length > 1 ? `${its.length} more unlock` : `${esc(its[0].n)} unlocks`} after:</div><ul class="chips">${k.split('|').map(chip).join('')}</ul></li>`;
     }
     return html;
   }
@@ -425,7 +431,7 @@
               body += `<div class="sub-h"><span>${esc(g)}</span><span class="${gd === gt ? 'full' : ''}">${gd}/${gt}</span>${rw}</div><ul>${itemRows(gi)}</ul>`;
             }
           } else body = `<ul>${itemRows(its)}</ul>`;
-          if (c.id === 'hunt' || c.id === 'gang') body += '<p class="note">Not tied to a map location.</p>';
+          if (c.id === 'gang') body += '<p class="note">Not tied to a map location.</p>';
         }
         const hidden = hiddenCats.has(c.id);
         sect += `<section class="cat ${open ? 'open' : ''} ${d === t ? 'complete' : ''} ${catNeeds.length ? 'is-locked' : ''}" style="--c:${c.color}">
@@ -436,7 +442,7 @@
               <span class="cat-count">${d}/${t}</span>
               <span class="chev">▾</span>
             </button>
-            ${c.id === 'hunt' || c.id === 'gang' ? '<span class="eye-ph"></span>' : `<button class="eye ${hidden ? 'off' : ''}" data-eye="${c.id}" title="${hidden ? 'Show' : 'Hide'} on map" aria-label="${hidden ? 'Show' : 'Hide'} ${esc(c.name)} on map">${hidden ? '◌' : '◉'}</button>`}
+            ${c.id === 'gang' ? '<span class="eye-ph"></span>' : `<button class="eye ${hidden ? 'off' : ''}" data-eye="${c.id}" title="${hidden ? 'Show' : 'Hide'} on map" aria-label="${hidden ? 'Show' : 'Hide'} ${esc(c.name)} on map">${hidden ? '◌' : '◉'}</button>`}
           </div>
           ${bar(d, t)}
           ${body && (open || catNeeds.length) ? `<div class="cat-body">${body}</div>` : ''}
@@ -445,7 +451,7 @@
       if (sect) html += `<h2 class="grp">${gname}</h2>${sect}`;
     }
     if (region) {
-      html += `<p class="note pad">Hunting requests and gang member requests aren't tied to a region — close the region to see them.</p>`;
+      html += `<p class="note pad">Gang member requests aren't tied to a region — close the region to see them.</p>`;
     } else if (!query) {
       html += `<h2 class="grp">Regions</h2><div class="regions">`;
       for (const st of [...new Set(D.regions.map(r => r.state))]) {
@@ -537,6 +543,7 @@
       <p><b>When:</b> ${esc(sp.cond)}</p>
       ${sp.hab ? `<p><b>Where:</b> ${esc(sp.hab)}</p>` : ''}
       ${sp.temper ? `<div class="hunt-box"><div class="hunt-row">${sp.size ? `<span class="tag-chip">${esc(sp.size)}</span>` : ''}<span class="tag-chip t-${esc(sp.temper.toLowerCase().replace(/\s+/g, '-'))}">${esc(sp.temper)}</span></div>
+        ${sp.kit ? `<dl class="kit"><dt>Weapon</dt><dd>${esc(sp.kit[0])}</dd><dt>Ammo</dt><dd>${esc(sp.kit[1])}</dd><dt>Also works</dt><dd>${esc(sp.kit[2])}</dd><dt>Aim</dt><dd>${esc(sp.kit[3])}</dd></dl>` : ''}
         <ul class="hunt-tips">${(sp.tips || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}
       ${sp.latin ? `<button class="btn sound" data-sound="${esc(sp.latin)}">🔊 Play its call</button><div class="sound-credit" data-credit="${esc(sp.latin)}"></div>` : ''}
       ${sp.spots ? `<p class="pop-rw">${sp.spots.toLocaleString()} spawn spots inside this border. The brighter the heat map, the more spawn spots are packed there.</p>` : ''}

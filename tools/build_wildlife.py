@@ -119,7 +119,8 @@ for it in items:
   k2 = it['id'].split('-', 1)[1]
   if it['c'] == 'animal':
     sp['latin'] = LEGEND_LATIN.get(k2)
-    sp['tips'] = ['Inside the circle, use Eagle Eye to find and follow 3 clues to the animal.', 'Use a Rifle with Express or Explosive ammo; legendary pelts are always perfect.']
+    sp['tips'] = ['Inside the circle, use Eagle Eye to find and follow 3 clues to the animal.', 'Legendary pelts are always perfect, so any killing shot works.']
+    sp['kit'] = ['Rifle (Bolt Action or Rolling Block)', 'Express ammo (Explosive Express from the pamphlet is best)', 'Bow with Poison Arrows, then keep your distance', 'Head shots in Dead Eye; it has far more health than a normal animal.']
     sp['temper'] = 'Legendary'
   json.dump({'a': to_leaflet(circle), 'p': []}, open(f"{OUT}/wild/{key}.json", 'w'), separators=(',', ':'))
   legend.append(sp)

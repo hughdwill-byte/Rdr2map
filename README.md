@@ -30,3 +30,5 @@ Static site, no build step. GitHub → Settings → Pages → *Deploy from a bra
 `tools/` holds the Python scripts that align the three datasets into one coordinate system and generate `data.js` (run them next to clones of the repos above).
 
 Fan project, not affiliated with Rockstar Games.
+
+Exploring & secrets: 57 points of interest (hidden until you switch them on), supernatural encounters (UFOs, the Saint Denis vampire, the ghost train and others; pins marked approx are placed by area) and free early weapons. Talismans & Trinkets: all crafted ones pinned at the fence nearest their legendary animal and unlocked once you tick it, plus world pickups (Cat Eye, Hawk Talon, Shark Tooth, Turtle Shell, Crow Beak) and talisman components. Hunting requests are pinned at each animal's densest spawn cluster, with the nearest post office to mail it from. Wildlife popups list the weapon, ammo and aim point for a perfect pelt.

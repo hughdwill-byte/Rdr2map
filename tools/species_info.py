@@ -1,11 +1,13 @@
 # Hunting info per species: size class (decides the ideal weapon for a perfect pelt), temperament, notes, and the
 # scientific name used to look up a real recording of the animal on Wikimedia Commons.
+# size class -> perfect-pelt loadout: (label, weapon, ammo, also works, where to aim). Too strong a round ruins the pelt
+# (the game drops it to 1-2 stars); too weak wounds the animal. Per RDR2 hunting guides (rdr2.org, gamerguides).
 SIZE = {
- 'tiny':    ('Tiny', 'Bow with Small Game Arrows (Varmint Rifle also kills cleanly)'),
- 'small':   ('Small', 'Varmint Rifle'),
- 'medium':  ('Medium', 'Bow with regular arrows, or a Repeater/Rifle'),
- 'large':   ('Large', 'Bow with regular or poison arrows, or a Rifle'),
- 'massive': ('Massive', 'Rifle with Express ammo, Sniper Rifle, or Improved Arrows'),
+ 'tiny':    ('Tiny', 'Bow', 'Small Game Arrows', 'Varmint Rifle', 'Body shot is fine with small game arrows.'),
+ 'small':   ('Small', 'Varmint Rifle', 'Varmint Rifle ammo (.22)', 'Bow with Small Game Arrows', 'Head or upper body.'),
+ 'medium':  ('Medium', 'Bow', 'Regular or Improved Arrows', 'Repeater with regular ammo', 'Head, or heart/lungs behind the front leg.'),
+ 'large':   ('Large', 'Rifle (Springfield or Bolt Action)', 'Regular or High Velocity rifle ammo', 'Bow with Improved or Poison Arrows', 'Head or heart: one clean shot.'),
+ 'massive': ('Massive', 'Rifle (Bolt Action, Rolling Block or Carcano)', 'Express or High Velocity rifle ammo', 'Bow with Poison Arrows (body shot, then wait)', 'Head, or heart behind the front leg; use Dead Eye to see the weak spots.'),
 }
 # key: (size, temperament, note, latin name for the sound lookup or None)
 S = {
@@ -96,15 +98,16 @@ def info(key, group, cond):
     return {}
   else:
     size, temper, note, latin = S.get(key, ('medium', 'Skittish', '', None))
-  label, weapon = SIZE[size]
+  label, weapon, ammo, alt, aim = SIZE[size]
   tips = []
   if group not in ('Wild horses',):
-    tips.append(f'Perfect pelt: {weapon}. Study it with binoculars first and only take 3-star animals.')
+    tips.append('Study it with binoculars first and only hunt 3-star animals: lower stars can never give a perfect pelt.')
   if temper in ('Very dangerous', 'Dangerous'):
     tips.append('Predator: predator bait draws it in; keep your horse close.')
   elif group == 'Animals' and size in ('large', 'massive') and temper == 'Skittish':
     tips.append('Herbivore bait plus cover scent lotion lets you get close.')
   if night: tips.append('Most spawn spots are only active at night.')
   out = {'size': label, 'temper': temper, 'tips': ([note] if note else []) + tips}
+  if group != 'Wild horses': out['kit'] = [weapon, ammo, alt, aim]
   if latin: out['latin'] = latin
   return out
