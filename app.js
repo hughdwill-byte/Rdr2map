@@ -340,7 +340,7 @@
   function setTab(t) {
     tab = t; save('rdr2map.tab', t);
     document.body.dataset.tab = t;
-    $('search').placeholder = t === 'wild' ? 'Search wildlife…' : 'Search collectibles…';
+    $('search').placeholder = t === 'wild' ? 'Search wildlife…' : t === 'chal' ? 'Search challenges…' : 'Search collectibles…';
     for (const b of document.querySelectorAll('[data-tabbtn]')) b.setAttribute('aria-selected', b.dataset.tabbtn === t);
     renderList();
     $('list').scrollTop = 0;
@@ -646,9 +646,68 @@
     return html;
   }
 
+  // ---- challenges: 9 lists of 10 ranks; the game opens each rank only after the one before ----
+  const CHAL = RDR.challenges;
+  const chalLayer = L.layerGroup().addTo(map);
+  let chalOn = null;
+  const chalKey = (c, n) => `chal-${c.id}-${n}`;
+  const chalCur = c => { let n = 1; while (n <= 10 && story.has(chalKey(c, n))) n++; return n; }; // 11 = list finished
+  function setChal(k, on) {
+    const [, id, n] = /^(.+)-(\d+)$/.exec(k), c = CHAL.find(x => x.id === id);
+    for (let i = 1; i <= 10; i++) if (on && i <= +n) story.add(chalKey(c, i)); else if (!on && i >= +n) story.delete(chalKey(c, i));
+    save('rdr2map.story', [...story]);
+    renderList();
+  }
+  async function showChal(k) {
+    chalLayer.clearLayers();
+    if (chalOn === k) { chalOn = null; return renderList(); }
+    chalOn = k;
+    const [, id, n] = /^(.+)-(\d+)$/.exec(k), c = CHAL.find(x => x.id === id), r = c.ranks[n - 1];
+    const pts = r.pts || [];
+    if (r.route && pts.length > 1) L.polyline(pts.map(p => p.slice(0, 2)), { color: '#f2d27a', weight: 3, opacity: 0.9, dashArray: '6 8', interactive: false }).addTo(chalLayer);
+    pts.forEach((p, i) => L.marker(p.slice(0, 2), { icon: pinIcon(`<div class="pin chal-pin"><b>${r.route ? i + 1 : '★'}</b></div>`, 'camp'), zIndexOffset: 600, title: p[2] })
+      .bindPopup(`<div class="chal-pop"><div class="pop-kicker">${esc(c.n)} #${n}</div><b>${esc(p[2].replace(/^\d+\. /, ''))}</b><p>${esc(r.t)}</p></div>`, popOpts).addTo(chalLayer));
+    renderList();
+    for (const w of r.wild || []) await setWild(w, true, false);
+    if (pts.length === 1) flyToPoint(pts[0].slice(0, 2), null);
+    else if (pts.length) { if (mobileMQ.matches) setSheet('peek'); map.flyToBounds(L.latLngBounds(pts.map(p => p.slice(0, 2))), { ...sheetPad(), maxZoom: 6, duration: 0.8 }); }
+    else if (r.wild) { if (mobileMQ.matches) setSheet('peek'); map.flyToBounds(wildLayers[r.wild[0]].getBounds(), { ...sheetPad(), maxZoom: 5, duration: 0.8 }); }
+  }
+  function renderChal() {
+    const total = CHAL.reduce((s, c) => s + chalCur(c) - 1, 0);
+    let html = `<div class="wild-intro">${total}/90 ranks done. Each list appears in your game the first time you do its opening task; after that its ranks open one at a time, in order.
+      Tick the rank you've reached (earlier ones tick too), and tap ⌖ for where to go: numbered pins are the order to do them in.</div>`;
+    for (const c of CHAL) {
+      const cur = chalCur(c), open = openCats.has('chal-' + c.id) || !!query;
+      const ranks = c.ranks.map((r, i) => [r, i + 1]).filter(([r]) => !query || (r.t + ' ' + r.how).toLowerCase().includes(query));
+      if (query && !ranks.length) continue;
+      let body = '';
+      if (open) {
+        body = `<p class="note chal-unlock"><b>Unlock:</b> ${esc(c.unlock)}</p><ul>`;
+        for (const [r, n] of ranks) {
+          const k = `${c.id}-${n}`, isDone = n < cur, need = (r.q || []).filter(t => !met(t));
+          body += `<li class="item chal ${isDone ? 'is-done' : ''} ${n > cur ? 'is-later' : ''} ${n === cur ? 'is-cur' : ''}">
+            <label><input type="checkbox" data-chal="${k}" ${isDone ? 'checked' : ''}><span class="tick"></span>
+              <span class="txt"><span class="nm"><span class="rank">${n}</span>${esc(r.t)}</span>${isDone ? '' : `<span class="desc">${esc(r.how)}</span>`}</span></label>
+            ${r.pts || r.wild ? `<button class="loc ${chalOn === k ? 'on' : ''}" data-chmap="${k}" title="${chalOn === k ? 'Hide from map' : 'Show on map'}" aria-label="Show rank ${n} on map">⌖</button>` : ''}
+            ${need.length && !isDone ? `<div class="chal-need"><div class="lock-h">🔒 Needs first:</div><ul class="chips">${need.map(chip).join('')}</ul></div>` : ''}
+          </li>`;
+        }
+        body += '</ul>';
+      }
+      const t = c.ranks[Math.min(cur, 10) - 1].t;
+      html += `<section class="cat ${open ? 'open' : ''} ${cur > 10 ? 'complete' : ''}" style="--c:#c9a86a">
+        <div class="cat-h"><button class="cat-btn" data-open="chal-${c.id}" aria-expanded="${open}">
+          <span class="cat-name">${esc(c.n)}<span class="chal-next">${cur > 10 ? 'Complete' : `Next: #${cur} ${esc(t)}`}</span></span>
+          <span class="cat-count">${cur - 1}/10</span><span class="chev">▾</span></button></div>
+        ${bar(cur - 1, 10)}${open ? `<div class="cat-body">${body}</div>` : ''}</section>`;
+    }
+    return html || `<p class="note pad">Nothing matches “${esc(query)}”.</p>`;
+  }
+
   function renderList() {
     const el = $('list'), top = el.scrollTop;
-    el.innerHTML = (tab === 'story' ? renderStory() : tab === 'wild' ? renderWild() : renderItems()) + footerHtml();
+    el.innerHTML = (tab === 'story' ? renderStory() : tab === 'wild' ? renderWild() : tab === 'chal' ? renderChal() : renderItems()) + footerHtml();
     el.scrollTop = top;
     const sel = $('cur-ch');
     if (sel) sel.onchange = () => {
@@ -669,6 +728,8 @@
       if (!it.l.length) return showDetail(it);
       return v.parentElement.querySelector('[data-loc]').click();
     }
+    const cm = e.target.closest('[data-chmap]');
+    if (cm) return showChal(cm.dataset.chmap);
     const t = e.target.closest('[data-open],[data-eye],[data-loc],[data-region],[data-story],[data-start],[data-gostory],[data-ch],[data-camp]');
     if (!t) return;
     const ds = t.dataset;
@@ -719,6 +780,7 @@
     else if (ds.mission) setStory(ds.mission, e.target.checked);
     else if (ds.chdone) setStory('chdone-' + ds.chdone, e.target.checked);
     else if (ds.wild) setWild(ds.wild, e.target.checked);
+    else if (ds.chal) setChal(ds.chal, e.target.checked);
   });
   for (const b of document.querySelectorAll('[data-tabbtn]')) b.addEventListener('click', () => setTab(b.dataset.tabbtn));
   let qt;

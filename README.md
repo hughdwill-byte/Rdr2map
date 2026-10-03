@@ -10,6 +10,8 @@ Story-aware: set your chapter (or tick missions) in the Story progress tab and e
 
 Wildlife tab: switch on any of 122 animals, birds, fish or wild horses to see its habitat outlined on the map (drawn around every spawn point in RDOMap's game data), with when it appears (time-of-day windows from the same data) and where (Red Dead wiki habitat notes). Nothing is shown until you switch an animal on.
 
+Challenges tab: all 90 story-mode challenges (9 lists × 10 ranks) in the order the game opens them, each with how to unlock the list, a tip for every rank, and map pins. Numbered pins and a dashed line show routes, such as Bandit #3 (four shop registers in one day). Hunting ranks switch on the right wildlife habitats. Crafting Pamphlets: world pickup spots snapped to game-data chests, plus the fence and story unlock for each.
+
 Built phone-first for iPhone: a bottom-sheet list you drag or tap, safe-area support for the notch and home bar, and *Add to Home Screen* support so it runs full-screen like an app. Progress can be backed up and restored with a code.
 
 ## Hosting
