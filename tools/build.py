@@ -140,13 +140,21 @@ Mv=np.load('Mv.npy'); VM=json.load(open('rdr2-complete-guide/src/data/mapMarkers
 def vpt(m): return P(*(np.array([m['x'],m['y'],1])@Mv))
 def norm(t): return re.sub(r'[^a-z]','',t.lower().replace('legendary',''))
 ALIAS={'bullgator':'bullgator','pronghornram':'pronghorn','bighornram':'bighornram','gar':'longnosegar','sturgeon':'lakesturgeon','giaguaropanther':'giaguaropanther','bharatigrizzlybear':'bharatigrizzlybear'}
-for typ,cat in (('legendary-fish','fish'),):  # legendary animals keep IGN's pins: they mark the in-game search circle (game-data points sit up to 6 units off it)
+for typ,cat in (('legendary-animal','animal'),('legendary-fish','fish')):
   vm={norm(m['title']):m for m in VM if m['type']==typ}
   for it in items:
     if it['c']!=cat: continue
     k=norm(it['n']); k=ALIAS.get(k,k)
     if k in vm: it['l']=[vpt(vm[k])]
     else: print('no game match',it['n'],k)
+# The game-data point is where the game draws the legendary's icon, which is near, not always on, its spawn area.
+# Where the wiki's landmark description disagrees, use the community-placed pin (IGN) or a spot read off the map art.
+LEG_FIX={'animal-elk':'ign','animal-moose':'ign','animal-white-bison':'ign',   # east of Bacchus Station / largest island / north end of Lake Isabella
+         'animal-ram':[-67.9,128.6]}                                          # hills east of Cattail Pond, north of the railroad
+IGN_LEG={re.sub(r'\W+','-',sub(m).replace('Legendary ','').lower()):P(m['lat'],m['lng']) for m in I('Animal') if sub(m).startswith('Legendary')}
+for it in items:
+  f=LEG_FIX.get(it['id'])
+  if f: it['l']=[IGN_LEG[it['id'].split('-',1)[1]] if f=='ign' else P(*f)]
 for typ,cat in (('dreamcatcher','dream'),('rock-carving','carving')):
   for m in [m for m in VM if m['type']==typ]:
     ll=vpt(m); it=min((i for i in items if i['c']==cat),key=lambda i:(i['l'][0][0]-ll[0])**2+(i['l'][0][1]-ll[1])**2); it['l']=[ll]
@@ -194,6 +202,7 @@ PF=[('small-game-arrow','Small Game Arrow Pamphlet',[],'Crafts Small Game Arrows
 for k,n,q,d in PF:
   add('pamph',k,n,[P(-85.07,144.83)] if k=='split-point' else [P(*ll) for _,ll in FENCES],d+('' if k=='split-point' else ' '+FN+' Pins show every fence.'),grp='Sold by Fences',q=q)
 # Legendary conditions (Red Dead wiki / guides): per-animal unlocks and per-fish special lures
+HAB={w['n']:w['hab'] for w in json.load(open('wildlife.json')) if w['g']=='Legendary animals' and w.get('hab')}
 LEG_A={'alligator':'Only after "That\'s Murfree Country" (Chapter 6); you first meet it in "Country Pursuits" (Chapter 4).',
        'grizzly-bear':'Unlocked by "Exit Pursued by a Bruised Ego" (Chapter 2), where Hosea first runs into it.',
        'panther':'Only appears once you reach rank 9 of the Master Hunter challenges.',
@@ -203,7 +212,7 @@ LURE={'bluegill':'Lake','bullhead-catfish':'River','chain-pickerel':'River','gar
 for it in items:
   k=it['id'].split('-',1)[1]
   if it['c']=='animal':
-    it['d']=LEG_A.get(k,'Available from Chapter 2.')+' Inside the circle, use Eagle Eye to follow 3 clues to the animal. Use a high-calibre rifle with express or explosive ammo, then sell the pelt to the Trapper.'
+    it['d']=(HAB.get(it['n'],'')+' ' if HAB.get(it['n']) else '')+LEG_A.get(k,'Available from Chapter 2.')+' Inside the circle, use Eagle Eye to follow 3 clues to the animal. Use a high-calibre rifle with express or explosive ammo, then sell the pelt to the Trapper.'
   if it['c']=='fish':
     it['d']=f"Use the Special {LURE[k]} Lure (Lagras bait shop). Mail the catch to Jeremy Gill." + (' Bites best in the rain.' if k=='largemouth-bass' else '') + (' New Austin: Epilogue only.' if 'hennigans' in str(it.get('lr')) or k in ('largemouth-bass','redfin-pickerel') else '')
 
