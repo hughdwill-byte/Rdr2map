@@ -140,7 +140,7 @@ Mv=np.load('Mv.npy'); VM=json.load(open('rdr2-complete-guide/src/data/mapMarkers
 def vpt(m): return P(*(np.array([m['x'],m['y'],1])@Mv))
 def norm(t): return re.sub(r'[^a-z]','',t.lower().replace('legendary',''))
 ALIAS={'bullgator':'bullgator','pronghornram':'pronghorn','bighornram':'bighornram','gar':'longnosegar','sturgeon':'lakesturgeon','giaguaropanther':'giaguaropanther','bharatigrizzlybear':'bharatigrizzlybear'}
-for typ,cat in (('legendary-animal','animal'),('legendary-fish','fish')):
+for typ,cat in (('legendary-fish','fish'),):  # legendary animals keep IGN's pins: they mark the in-game search circle (game-data points sit up to 6 units off it)
   vm={norm(m['title']):m for m in VM if m['type']==typ}
   for it in items:
     if it['c']!=cat: continue
