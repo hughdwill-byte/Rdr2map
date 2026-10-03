@@ -161,9 +161,18 @@
   const popOpts = { className: 'rdr-popup', maxWidth: 280, minWidth: 220, autoPanPaddingTopLeft: [16, 60], autoPanPaddingBottomRight: panPad };
   const pinIcon = (html, cls = '') => L.divIcon({ className: 'pin-wrap ' + cls, iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -14], html });
   const markers = {}; // item id -> [{m, r}]
+  // pins sharing an exact spot (trinkets crafted at one fence...) fan out by a few pixels; the coordinates stay true
+  const atSpot = {};
+  for (const it of D.items) for (const ll of it.l) (atSpot[ll] ||= []).push(it.id);
+  const fan = (ll, id) => {
+    const ids = atSpot[ll], n = ids.indexOf(id), a = 2 * Math.PI * n / ids.length, r = ids.length > 1 ? 16 : 0;
+    return [16 - Math.round(r * Math.cos(a)), 16 + Math.round(r * Math.sin(a))];
+  };
   for (const it of D.items) {
     markers[it.id] = it.l.map((ll, i) => {
-      const m = L.marker(ll, { icon: pinIcon(`<div class="pin" style="--c:${CAT[it.c].color}"><img src="${iconOf(it)}" alt=""></div>`), title: it.n, riseOnHover: true, keyboard: false });
+      const icon = pinIcon(`<div class="pin" style="--c:${CAT[it.c].color}"><img src="${iconOf(it)}" alt=""></div>`);
+      icon.options.iconAnchor = fan(ll, it.id);
+      const m = L.marker(ll, { icon, title: it.n, riseOnHover: true, keyboard: false });
       m.bindPopup(() => popupHtml(it), popOpts);
       return { m, r: it.lr[i] };
     });

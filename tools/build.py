@@ -294,10 +294,10 @@ for k,n,lk,ln,eff,parts in TAL:
   add('trinket','t-'+k,n,[P(*fl)],f'Effect: {eff} How to get: skin the {ln} for its part, then craft at any Fence with {parts} Pin: the fence nearest that legendary ({fn}).',grp='Talismans',q=[f'item:animal-{lk}'],**({'to':[P(*COMP[comp][0]),COMP[comp][1]]} if comp else {}))
 add('trinket','t-raven','Raven Claw Talisman',[P(-91.5,106.5)],'Effect: weapons degrade 20% slower. How to get: find all 10 rock carvings for Francis Sinclair ("Geology for Beginners"), then take the Old Brass Compass from his cabin (pin, approx) and craft at a Fence.',grp='Talismans',q=['start-sinclair'])
 add('trinket','t-eagle','Eagle Talon Talisman',[],'Effect: +5 seconds of Eagle Eye. Special/Ultimate Edition bonus: already in your Wardrobe from Chapter 2.',grp='Talismans',q=['ch2'])
-FOUND=[('cat','Cat Eye Trinket',(-123.64,162.88),'Lockbox on the southernmost island of Flat Iron Lake, just west of Braithwaite Manor. Swim or take a boat.',None),
-       ('hawk','Hawk Talon Trinket',(-40.4,108.38),'Lockbox at a destroyed camp near the top of Deadboot Creek, Grizzlies West (pin approx). Effect: holding a drawn bow drains Stamina 30% slower.',None),
-       ('shark','Shark Tooth Trinket',(-55.6,226.0),'Lockbox among wooden crates beside the shipwreck: follow the shore east from Annesburg as far as you can go (pin approx). Effect: +10% horse bonding.',None),
-       ('turtle','Turtle Shell Trinket',(-153.95,26.05),'Under the stairs of the largest building at Gaptooth Breach (a gang hideout: clear it first). Effect: Health refills 10% faster.',['ch7']),
+FOUND=[('cat','Cat Eye Trinket',(-123.46,163.28),'Lockbox on the southernmost island of Flat Iron Lake, just west of Braithwaite Manor. Swim or take a boat.',None),
+       ('hawk','Hawk Talon Trinket',(-37.8,109.7),'Lockbox at a destroyed camp just west of the top of Deadboot Creek, Grizzlies West. Effect: holding a drawn bow drains Stamina 30% slower.',None),
+       ('shark','Shark Tooth Trinket',(-54.8,229.6),'Lockbox among wooden crates beside the shipwreck: follow the shore east from Annesburg as far as you can go (pin approx). Effect: +10% horse bonding.',None),
+       ('turtle','Turtle Shell Trinket',(-152.37,24.56),'Under the stairs of the largest building at Gaptooth Breach (a gang hideout: clear it first). Effect: Health refills 10% faster.',['ch7']),
        ('crow','Crow Beak Trinket',None,'Final reward of The Elemental Trail treasure hunt, at Coot\'s Chapel. Effect: +10% ammo looted from bodies.',['ch7'])]
 EL=[i for i in items if i['id']=='treasure-elemental-gold'][0]['l'][0]
 for k,n,ll,d,q in FOUND:
@@ -329,16 +329,6 @@ for it in items:
            f'pick up the carcass without skinning it, then mail it to Mrs. L. Hobbs at a post office: the nearest is {po[0]}. '
            'Collect her reward there 24 hours later to get the next request.' + (' Epilogue only.' if ep else ''))
   it['to']=[P(*po[1]),po[0]+' post office']
-# fan out pins that share a spot (several trinkets crafted at one fence, fence-sold pamphlets) so each stays tappable
-import math as _m
-_spots={}
-for it in items:
-  if it['c'] in ('trinket','pamph'):
-    for j,l in enumerate(it['l']): _spots.setdefault(tuple(l),[]).append((it,j))
-for k,lst in _spots.items():
-  if len(lst)<2: continue
-  for n,(it,j) in enumerate(lst):
-    a=2*_m.pi*n/len(lst); it['l'][j]=P(k[0]+0.45*_m.sin(a),k[1]+0.45*_m.cos(a))
 # regions per item
 for it in items:
   it['lr']=[region(*l) for l in it['l']]
