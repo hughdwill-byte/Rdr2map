@@ -312,23 +312,34 @@ HUNT_WILD={'squirrel':'animal_squirrel_grey','rabbit':'animal_rabbit','cardinal'
   'songbird':'animal_songbird_scarlet','toad':'animal_toad','bullfrog':'animal_frogbull','skunk':'animal_skunk','waxwing':'animal_cedarwaxwing',
   'bat':'animal_bat','blue-jay':'animal_bluejay','crow':'animal_crow','beaver':'animal_beaver'}
 from collections import Counter as _C
-def hotspot(wid, epilogue):
-  pts=json.load(open(f'wild/{wid}.json'))['p']
-  ok=[p for p in pts if epilogue or meta.get(region(*p) or '',[None,''])[1]!='New Austin']
-  cells=_C((int(p[0]//3),int(p[1]//3)) for p in ok)
-  (cy,cx),n=cells.most_common(1)[0]
-  inside=[p for p in ok if (int(p[0]//3),int(p[1]//3))==(cy,cx)]
-  return P(sum(p[0] for p in inside)/len(inside),sum(p[1] for p in inside)/len(inside)),n
+# one pin per camp, so the pin is always near where you are: chapter -> (camp, position) from story.js
+CAMPS=[(2,'Horseshoe Overlook',(-85.07,144.83)),(3,'Clemens Point',(-110.12,163.16)),(4,'Shady Belle',(-125.65,188.91)),
+       (6,'Beaver Hollow',(-56.23,197.51)),(7,'Pronghorn Ranch',(-74.98,96.75)),(8,"Beecher's Hope",(-113.78,113.37))]
+def hotspot(pts, near):
+  # densest 3x3-unit cell, preferring cells close to the camp: score = spawn points / (1 + distance/15)
+  cells=_C((int(p[0]//3),int(p[1]//3)) for p in pts)
+  def score(c):
+    cy,cx=(c[0]+.5)*3,(c[1]+.5)*3
+    return cells[c]/(1+(((cy-near[0])**2+(cx-near[1])**2)**.5)/15)
+  best=max(cells,key=score)
+  inside=[p for p in pts if (int(p[0]//3),int(p[1]//3))==best]
+  return P(sum(p[0] for p in inside)/len(inside),sum(p[1] for p in inside)/len(inside)),len(inside)
 for it in items:
   if it['c']!='hunt': continue
   k=it['id'].split('-',2)[2]; wid=HUNT_WILD[k]; ep=it['g'].endswith('#5')
-  ll,n=hotspot(wid,ep)
-  po=min(POST.items(),key=lambda kv:(kv[1][0]-ll[0])**2+(kv[1][1]-ll[1])**2)
-  it['l']=[ll]; it['wild']=wid
-  it['d']=(f'Pin: the densest cluster of its spawn points ({n} close together). Kill it cleanly with the right weapon (3-star animal, see the Wildlife tab), '
-           f'pick up the carcass without skinning it, then mail it to Mrs. L. Hobbs at a post office: the nearest is {po[0]}. '
+  pts=json.load(open(f'wild/{wid}.json'))['p']
+  camps=[c for c in CAMPS if not ep or c[0]>=7]
+  it['l'],it['lch'],it['tos']=[],[],[]
+  for ch,camp,cl in camps:
+    # New Austin is closed to Arthur before the Epilogue
+    ok=[p for p in pts if ch>=7 or meta.get(region(*p) or '',[None,''])[1]!='New Austin']
+    ll,n=hotspot(ok,cl)
+    po=min(POST.items(),key=lambda kv:(kv[1][0]-ll[0])**2+(kv[1][1]-ll[1])**2)
+    it['l'].append(ll); it['lch'].append(ch); it['tos'].append([P(*po[1]),po[0]+' post office',camp,n])
+  it['wild']=wid
+  it['d']=('The pin follows your story progress: it shows a good spot near your current camp. Kill it cleanly with the right weapon (3-star animal, see the Wildlife tab), '
+           'pick up the carcass without skinning it, then mail it to Mrs. L. Hobbs at a post office. '
            'Collect her reward there 24 hours later to get the next request.' + (' Epilogue only.' if ep else ''))
-  it['to']=[P(*po[1]),po[0]+' post office']
 # regions per item
 for it in items:
   it['lr']=[region(*l) for l in it['l']]

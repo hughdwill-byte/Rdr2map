@@ -174,7 +174,7 @@
       icon.options.iconAnchor = fan(ll, it.id);
       const m = L.marker(ll, { icon, title: it.n, riseOnHover: true, keyboard: false });
       m.bindPopup(() => popupHtml(it), popOpts);
-      return { m, r: it.lr[i] };
+      return { m, r: it.lr[i], i };
     });
   }
   // story start points (people to meet first) and the current chapter's camp
@@ -213,7 +213,7 @@
   }
 
   function popupHtml(it) {
-    const c = CAT[it.c], isDone = done.has(it.id);
+    const c = CAT[it.c], isDone = done.has(it.id), to = it.tos ? it.tos[chIdx(it)] : it.to;
     const sub = [it.g, it.sub].filter(Boolean).map(esc).join(' &middot; ');
     return `<div class="pop">
       <div class="pop-head"><span class="pin sm" style="--c:${c.color}"><img src="${iconOf(it)}" alt=""></span>
@@ -224,7 +224,8 @@
       ${it.rw ? `<p class="pop-rw">Set reward: ${esc(it.rw)}</p>` : ''}
       <div class="pop-reg">${it.r.map(r => esc(REG[r].name)).join(', ')}</div>
       ${it.l.length ? lookLinks(`${c.name.replace(/s$/, '')} ${it.n} ${it.c === 'card' ? it.g : it.sub || ''} location`) : ''}
-      ${it.wild || it.to ? `<div class="pop-links">${it.wild ? `<button class="btn ghost sm" data-habitat="${it.wild}">Show where it lives</button>` : ''}${it.to ? `<button class="btn ghost sm" data-goto="${it.to[0].join(',')}">${it.c === 'hunt' ? 'Deliver' : 'Part'}: ${esc(it.to[1])}</button>` : ''}</div>` : ''}
+      ${to && to[2] ? `<p class="pop-rw">Spot for when you're camped at ${esc(to[2])}: ${to[3]} spawn points close together. Mail it from ${esc(to[1])}.</p>` : ''}
+      ${it.wild || to ? `<div class="pop-links">${it.wild ? `<button class="btn ghost sm" data-habitat="${it.wild}">Show where it lives</button>` : ''}${to ? `<button class="btn ghost sm" data-goto="${to[0].join(',')}">${it.c === 'hunt' ? 'Deliver' : 'Part'}: ${esc(to[1])}</button>` : ''}</div>` : ''}
       <button class="btn ${isDone ? 'ghost' : ''}" data-toggle="${it.id}">${isDone ? 'Mark as not collected' : '✓ Mark as collected'}</button>
     </div>`;
   }
@@ -268,11 +269,14 @@
     refresh();
   }
 
+  // hunting requests carry one spot per camp; show the one for the chapter you're in
+  const chIdx = it => { let k = -1; if (it.lch) { const cc = currentCh(); k = 0; it.lch.forEach((c, j) => { if (c <= cc) k = j; }); } return k; };
+  const shownHere = (it, x) => (!region || x.r === region) && (!it.lch || x.i === chIdx(it));
   function refreshMarkers() {
     for (const it of D.items) {
       const visibleItem = !hiddenCats.has(it.c) && (showDone || !done.has(it.id)) && matches(it) && unlocked(it);
-      for (const { m, r } of markers[it.id]) {
-        const show = visibleItem && (!region || r === region);
+      for (const x of markers[it.id]) {
+        const m = x.m, show = visibleItem && shownHere(it, x);
         if (show && !map.hasLayer(m)) m.addTo(map);
         if (!show && map.hasLayer(m)) m.remove();
         if (show) m.getElement()?.classList.toggle('done', done.has(it.id));
@@ -780,7 +784,7 @@
     } else if (ds.loc) {
       const it = ITEM[ds.loc];
       hiddenCats.delete(it.c);
-      const ms = markers[it.id].filter(x => !region || x.r === region).map(x => x.m);
+      const ms = markers[it.id].filter(x => shownHere(it, x)).map(x => x.m);
       if (done.has(it.id) && !showDone) { showDone = true; $('show-done').checked = true; save('rdr2map.showDone', true); }
       refresh();
       if (ms.length === 1) flyToPoint(ms[0].getLatLng(), ms[0]);
