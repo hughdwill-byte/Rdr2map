@@ -173,6 +173,26 @@ for t in ('Rare Item','Treasure'):
     if t=='Treasure' and n not in ('Lockbox','Misc.'): continue
     if n=='Misc.': n='Chimney stash'
     add('loot',re.sub(r'\W+','-',(n+'-'+str(round(m['lng']))).lower()),n,[P(m['lat'],m['lng'])],dd or 'Valuable item; sell it to a fence.',grp='Other Valuables',ic='stash')
+# Crafting pamphlets (story mode). World spots snapped to game-data chests / landmarks; fence unlocks per guides (fextralife, rdr2.org, segmentnext).
+FENCES=[('Emerald Ranch',(-79.72,178.64)),('Rhodes',(-109.25,176.59)),('Saint Denis',(-110.51,208.62)),('Van Horn',(-73.69,212.09)),('Thieves\' Landing',(-133.77,119.99))]
+FN='Fences: '+', '.join(n for n,_ in FENCES)+'.'
+PW=[('volatile-dynamite','Volatile Dynamite Pamphlet',(-68.45,179.85),'Crafts Volatile Dynamite (bigger blast). In the chest hidden under the broken wagon north of the pond at Hani\'s Bethel, New Hanover. Or buy it from any Fence after "American Distillation".'),
+    ('special-snake-oil','Special Snake Oil Pamphlet',(-95.38,179.59),'Crafts Special Snake Oil (refills and fortifies Dead Eye). Under a loose floorboard in the small shack beside the railway, east of Eris Field. Or buy it from any Fence after "American Distillation".'),
+    ('improved-arrow','Improved Arrow Pamphlet',(-47.46,164.55),'Crafts Improved Arrows (more damage). In the chest outside the Mysterious Hill Home, northeast of Bacchus Station. You are also given it at the start of Chapter 2.'),
+    ('poison-arrow','Poison Arrow Pamphlet',(-47.42,165.08),'Crafts Poison Arrows (kills big game and perfect pelts with one hit to the body). In a lockbox among the barrels on the right side of the Mysterious Hill Home as you face the door. Or buy it from any Fence after "The Joys of Civilization".'),
+    ('homing-tomahawk','Homing Tomahawk Pamphlet',(-60.76,174.1),'Crafts Homing Tomahawks (curve onto the target). In the lockbox inside the Flattened Cabin, a cabin crushed by a fallen tree. Also sold by Fences from Chapter 2; buy it first and the lockbox is empty.'),
+    ('dynamite-arrow','Dynamite Arrow Pamphlet',(-40.46,158.45),'Crafts Dynamite Arrows. In the chest at the foot of the small wooden bridge at the south end of the Wapiti Indian Reservation. Or buy it from any Fence after "A Short Walk in a Pretty Town".'),
+    ('volatile-fire-bottle','Volatile Fire Bottle Pamphlet',(-83.26,143.81),'Crafts Volatile Fire Bottles (explode on impact). In the burnt forest west of Horseshoe Overlook: a lockbox under scorched planks beside the old fire pit. Or buy it from any Fence after "Pouring Forth Oil".')]
+for k,n,ll,d in PW: add('pamph',k,n,[P(*ll)],d,grp='Found in the world')
+PF=[('small-game-arrow','Small Game Arrow Pamphlet',[],'Crafts Small Game Arrows (kill birds and small animals without ruining the pelt). Sold by Fences from the start.'),
+    ('split-point','Split Point Ammo Pamphlet',['ch2'],'Crafts Split Point ammo for revolvers, pistols, repeaters and rifles (more damage, deadlier in Dead Eye). Given automatically at the start of Chapter 2: just open your satchel.'),
+    ('incendiary-buckshot','Incendiary Buckshot Pamphlet',['pouring-forth-oil-iv'],'Crafts Incendiary Buckshot for shotguns. Sold by Fences after "Pouring Forth Oil IV".'),
+    ('express-explosive','Express Explosive Ammo Pamphlet',['a-short-walk-in-a-pretty-town'],'Crafts Express Explosive ammo (the best ammo for legendary animals and armoured enemies). Sold by Fences after "A Short Walk in a Pretty Town".'),
+    ('explosive-slug','Explosive Slug Pamphlet',['a-short-walk-in-a-pretty-town'],'Crafts Explosive Slugs for shotguns. Sold by Fences after "A Short Walk in a Pretty Town".'),
+    ('fire-arrow','Fire Arrow Pamphlet',['american-fathers-i'],'Crafts Fire Arrows. Sold by Fences after "American Fathers".'),
+    ('poison-throwing-knife','Poison Throwing Knife Pamphlet',['pouring-forth-oil-i'],'Crafts Poison Throwing Knives. Sold by Fences after "Pouring Forth Oil".')]
+for k,n,q,d in PF:
+  add('pamph',k,n,[P(-85.07,144.83)] if k=='split-point' else [P(*ll) for _,ll in FENCES],d+('' if k=='split-point' else ' '+FN+' Pins show every fence.'),grp='Sold by Fences',q=q)
 # Legendary conditions (Red Dead wiki / guides): per-animal unlocks and per-fish special lures
 LEG_A={'alligator':'Only after "That\'s Murfree Country" (Chapter 6); you first meet it in "Country Pursuits" (Chapter 4).',
        'grizzly-bear':'Unlocked by "Exit Pursued by a Bruised Ego" (Chapter 2), where Hosea first runs into it.',
@@ -226,7 +246,7 @@ for it in items:
 CATS=[('dino','Dinosaur Bones','main','#e3a33b'),('carving','Rock Carvings','main','#6fb3c9'),('dream','Dreamcatchers','main','#d1584b'),('card','Cigarette Cards','main','#c9a86a'),('treasure','Treasure Maps','main','#e6c23e'),('grave','Graves','main','#9aa6b8'),
       ('animal','Legendary Animals','hunt','#d98a3d'),('fish','Legendary Fish','hunt','#4fa3d9'),('hunt','Hunting Requests','hunt','#8fbf5a'),
       ('exotic','Exotics','side','#b77fd1'),('gang','Gang Member Requests','side','#d9a07a'),('gear','Unique Weapons & Hats','side','#c7c7c7'),
-      ('loot','Valuable Stashes','money','#e8b923')]
+      ('loot','Valuable Stashes','money','#e8b923'),('pamph','Crafting Pamphlets','side','#d4b483')]
 from collections import Counter; print(Counter(i['c'] for i in items)); print('no region:',[i['id'] for i in items if i['l'] and not i['r']])
 out={'cats':[dict(id=a,name=b,group=c,color=d) for a,b,c,d in CATS],'regions':[dict(id=k,name=v[0],state=v[1]) for k,v in meta.items()],'geo':json.load(open('regions.geojson')),'items':items}
 open('data.js','w').write('// Generated by build.py — see README for sources.\nwindow.RDR={};RDR.data='+json.dumps(out,ensure_ascii=False,separators=(',',':'))+';\n')

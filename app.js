@@ -9,11 +9,11 @@
   for (const ch of CH) for (const [id, n, opt] of ch.missions) MISSION[id] = { id, n, opt: !!opt, ch: ch.n };
   const START = Object.fromEntries(S.starts.map(s => [s.id, s]));
   const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items', money: 'Money & valuables' };
-  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot']);
+  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot', 'pamph']);
   const ICON = {
     dino: 'icons/dino.png', carving: 'icons/carving.png', dream: 'icons/dream.png', card: 'icons/card.svg',
     treasure: 'icons/treasure.png', grave: 'icons/grave.png', animal: 'icons/animal.png', fish: 'icons/fish.png',
-    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg',
+    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg', pamph: 'icons/pamphlet.svg',
   };
   const iconOf = it => it.ic ? (/^(weapon|hat|goldbar|stash)$/.test(it.ic) ? `icons/${it.ic}.svg` : `icons/${it.ic}.png`) : ICON[it.c];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
