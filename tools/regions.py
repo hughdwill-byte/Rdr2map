@@ -5,10 +5,10 @@ from shapely.ops import unary_union
 S=4
 land=np.load('land.npy'); H,W=land.shape
 R={ # id: (name, state, seeds[(lat,lng)])
- 'grizzlies_west':("Grizzlies West","Ambarino",[(-61.6,119),(-45,115),(-50,128),(-38,125),(-56.7,138.7),(-64.1,129.6),(-55,100),(-65.5,137.3),(-42,138),(-35,117),(-71.5,111.2),(-68,114)]),
+ 'grizzlies_west':("Grizzlies West","Ambarino",[(-61.6,119),(-45,115),(-50,128),(-38,125),(-56.7,138.7),(-64.1,129.6),(-55,100),(-65.5,137.3),(-42,138),(-35,117)]),
  'grizzlies_east':("Grizzlies East","Ambarino",[(-53,176),(-43,165),(-42.9,182.4),(-55.2,177.4),(-45.2,188.3),(-38,152),(-48,155.3),(-60,178),(-58,170),(-36,160)]),
  'cumberland':("Cumberland Forest","New Hanover",[(-61,154.5),(-51.6,158.4),(-61.4,146.3),(-60,162),(-56,150)]),
- 'heartlands':("The Heartlands","New Hanover",[(-85,155),(-72,151.5),(-70.4,184.5),(-74.5,175.5),(-80.9,148.5),(-79.9,138.1),(-91.2,138.3),(-90.4,168.3),(-88.9,158.4),(-94.6,155),(-67.7,136.5),(-83.1,129.2),(-68.7,183.2),(-73.9,137.8),(-85,164),(-68,165),(-86.6,186.6),(-84,186)]),
+ 'heartlands':("The Heartlands","New Hanover",[(-85,155),(-72,151.5),(-70.4,184.5),(-74.5,175.5),(-80.9,148.5),(-79.9,138.1),(-91.2,138.3),(-90.4,168.3),(-88.9,158.4),(-94.6,155),(-67.7,136.5),(-83.1,129.2),(-68.7,183.2),(-73.9,137.8),(-85,164),(-68,165)]),
  'roanoke':("Roanoke Ridge","New Hanover",[(-55,205),(-62.5,198),(-49.9,192.3),(-47,207.3),(-70.3,207.6),(-51.5,202.1),(-61,202.6),(-58.4,204.3),(-67.7,197.7),(-75,205),(-74,213),(-42,200)]),
  'scarlett':("Scarlett Meadows","Lemoyne",[(-97,168.4),(-94.5,167.1),(-85.2,183),(-90.2,181.5),(-105,172),(-112,177),(-110,170),(-100,162),(-115,165)]),
  'bluewater':("Bluewater Marsh","Lemoyne",[(-92,198),(-89.8,190.4),(-88,200),(-95,204)]),
@@ -21,6 +21,12 @@ R={ # id: (name, state, seeds[(lat,lng)])
  'gaptooth':("Gaptooth Ridge","New Austin",[(-147,30),(-141.6,39.3),(-149,36.9),(-155,20),(-138,40)]),
  'rio_bravo':("Rio Bravo","New Austin",[(-160.6,57),(-160.7,74.9),(-161.9,56.9),(-157,40),(-163,49)]),
 }
+from traced_borders import BORDERS
+from PIL import Image as _I, ImageDraw as _D
+bimg=_I.new('L',(W,H),0); dr=_D.Draw(bimg)
+for line in BORDERS.values(): dr.line([(lng*S,-lat*S) for lat,lng in line],fill=255,width=3)
+barrier=np.asarray(bimg)>0
+fullland=land.copy(); land=land&~barrier      # traced border lines act like water while regions grow
 ids=list(R)
 lab=np.full((H,W),-1,int); q=deque()
 for i,k in enumerate(ids):
@@ -36,6 +42,11 @@ while q:
     ny,nx=y+dy,x+dx
     if 0<=ny<H and 0<=nx<W and land[ny,nx] and lab[ny,nx]<0:
       lab[ny,nx]=lab[y,x]; q.append((ny,nx))
+# give border-line cells to the neighbouring region they touch first
+land=fullland
+for _ in range(4):
+  for dy,dx in((1,0),(-1,0),(0,1),(0,-1)):
+    sh=np.roll(np.roll(lab,dy,0),dx,1); m=land&(lab<0)&(sh>=0); lab[m]=sh[m]
 # land pieces unreachable (islands): nearest seed euclid
 seeds=np.array([(-lat*S,lng*S,i) for i,k in enumerate(ids) for lat,lng in R[k][2]])
 ys,xs=np.nonzero(land&(lab<0))
