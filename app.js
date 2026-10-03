@@ -26,6 +26,9 @@
   const done = new Set(load('rdr2map.done', []).filter(id => ITEM[id]));
   const story = new Set(load('rdr2map.story', []));
   // ponytail: exotics have ~250 spawn markers, so they start hidden to keep the first view readable
+  // non-collectible layers: one master switch turns them all on/off; the checklist picks which ones show
+  const NONCOL = ['early', 'secret', 'poi', 'stranger', 'crime', 'event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service'];
+  let layersOn = load('rdr2map.layersOn', true);
   const DEFAULT_HIDDEN = ['exotic', 'poi', 'stranger', 'crime', 'event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service'];
   const hiddenCats = new Set(load('rdr2map.hiddenCats', DEFAULT_HIDDEN));
   { // categories added since this browser last visited start hidden if they're busy layers
@@ -124,6 +127,40 @@
     attribution: 'Map &copy; Rockstar Games &middot; data: <a href="https://github.com/jeanropke/RDOMap">RDOMap</a>, <a href="https://github.com/the0neWhoKnocks/red-dead-redemption-2-map">rdr2-map</a>',
   }).addTo(map);
   if (canHover) L.control.zoom({ position: 'topright' }).addTo(map); // touch screens pinch instead
+  const layersCtl = L.control({ position: 'topright' });
+  layersCtl.onAdd = () => {
+    const el = L.DomUtil.create('div', 'layers-ctl');
+    L.DomEvent.disableClickPropagation(el); L.DomEvent.disableScrollPropagation(el);
+    return el;
+  };
+  layersCtl.addTo(map);
+  let layersOpen = false;
+  function renderLayers() {
+    const el = layersCtl.getContainer(), cats = NONCOL.map(id => D.cats.find(c => c.id === id)).filter(Boolean);
+    const shown = cats.filter(c => !hiddenCats.has(c.id)).length;
+    el.innerHTML = `<button class="layers-btn ${layersOn ? 'on' : ''}" data-lyr-open aria-expanded="${layersOpen}">🗺 Places${layersOn ? ` · ${shown}` : ' · off'}</button>
+      ${layersOpen ? `<div class="layers-panel">
+        <label class="layers-master"><span>Places &amp; services</span><span class="switch-ui"><input type="checkbox" role="switch" data-lyr-master ${layersOn ? 'checked' : ''}><span></span></span></label>
+        <div class="layers-quick"><button class="link" data-lyr-all>Show all</button><button class="link" data-lyr-none>Hide all</button></div>
+        ${cats.map(c => `<label class="layers-row ${layersOn ? '' : 'dim'}"><input type="checkbox" data-lyr="${c.id}" ${hiddenCats.has(c.id) ? '' : 'checked'}>
+          <span class="pin sm" style="--c:${c.color}"><img src="${ICON[c.id]}" alt=""></span><span>${esc(c.name)}</span></label>`).join('')}
+      </div>` : ''}`;
+  }
+  function setLayers(fn) {
+    fn(); save('rdr2map.layersOn', layersOn); save('rdr2map.hiddenCats', [...hiddenCats]);
+    refresh(); renderLayers();
+  }
+  layersCtl.getContainer().addEventListener('click', e => {
+    const t = e.target;
+    if (t.closest('[data-lyr-open]')) { layersOpen = !layersOpen; renderLayers(); }
+    else if (t.closest('[data-lyr-all]')) setLayers(() => { layersOn = true; NONCOL.forEach(c => hiddenCats.delete(c)); });
+    else if (t.closest('[data-lyr-none]')) setLayers(() => NONCOL.forEach(c => hiddenCats.add(c)));
+  });
+  layersCtl.getContainer().addEventListener('change', e => {
+    const d = e.target.dataset;
+    if ('lyrMaster' in d) setLayers(() => { layersOn = e.target.checked; });
+    else if (d.lyr) setLayers(() => { e.target.checked ? hiddenCats.delete(d.lyr) : hiddenCats.add(d.lyr); if (e.target.checked) layersOn = true; });
+  });
   const HOME = L.latLngBounds([-168, 12], [-24, 222]);
   // keep fitted areas clear of the bottom sheet on phones
   const sheetH = () => sheet === 'peek' ? 150 + (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0) : $('side').offsetHeight;
@@ -286,7 +323,7 @@
   const shownHere = (it, x) => (!region || x.r === region) && (!it.lch || x.i === chIdx(it));
   function refreshMarkers() {
     for (const it of D.items) {
-      const visibleItem = !hiddenCats.has(it.c) && (showDone || !done.has(it.id)) && matches(it) && unlocked(it);
+      const visibleItem = !hiddenCats.has(it.c) && (layersOn || !NONCOL.includes(it.c)) && (showDone || !done.has(it.id)) && matches(it) && unlocked(it);
       for (const x of markers[it.id]) {
         const m = x.m, show = visibleItem && shownHere(it, x);
         if (show && !map.hasLayer(m)) m.addTo(map);
@@ -458,7 +495,7 @@
           } else body = `<ul>${itemRows(its)}</ul>`;
           if (REF.has(c.id)) body += '<p class="note">Reference layer: not counted towards 100%.</p>';
         }
-        const hidden = hiddenCats.has(c.id);
+        const hidden = hiddenCats.has(c.id) || (!layersOn && NONCOL.includes(c.id));
         sect += `<section class="cat ${open ? 'open' : ''} ${d === t ? 'complete' : ''} ${catNeeds.length ? 'is-locked' : ''}" style="--c:${c.color}">
           <div class="cat-h">
             <button class="cat-btn" data-open="${c.id}" aria-expanded="${!!open}">
@@ -769,8 +806,9 @@
       openCats.has(ds.open) ? openCats.delete(ds.open) : openCats.add(ds.open);
       save('rdr2map.openCats', [...openCats]); renderList();
     } else if (ds.eye) {
-      hiddenCats.has(ds.eye) ? hiddenCats.delete(ds.eye) : hiddenCats.add(ds.eye);
-      save('rdr2map.hiddenCats', [...hiddenCats]); refresh();
+      if (!layersOn && NONCOL.includes(ds.eye)) { layersOn = true; hiddenCats.delete(ds.eye); save('rdr2map.layersOn', true); }
+      else hiddenCats.has(ds.eye) ? hiddenCats.delete(ds.eye) : hiddenCats.add(ds.eye);
+      save('rdr2map.hiddenCats', [...hiddenCats]); refresh(); renderLayers();
     } else if (ds.region) {
       selectRegion(ds.region);
     } else if (ds.story) {
@@ -866,6 +904,7 @@
   setTab(tab);
   if (wildOn.size) loadWildIndex().then(() => [...wildOn].forEach(id => setWild(id, true, false)));
   refresh();
+  renderLayers();
   goHome(false);
   mobileMQ.addEventListener('change', () => setSheet(sheet));
 })();
