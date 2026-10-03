@@ -536,7 +536,10 @@
       ${sp.img ? `<div class="pop-art"><img src="${sp.img}" alt="${esc(sp.n)}"></div>` : ''}
       <p><b>When:</b> ${esc(sp.cond)}</p>
       ${sp.hab ? `<p><b>Where:</b> ${esc(sp.hab)}</p>` : ''}
-      ${sp.spots ? `<p class="pop-rw">${sp.spots.toLocaleString()} spawn spots inside this border.</p>` : ''}
+      ${sp.temper ? `<div class="hunt-box"><div class="hunt-row">${sp.size ? `<span class="tag-chip">${esc(sp.size)}</span>` : ''}<span class="tag-chip t-${esc(sp.temper.toLowerCase().replace(/\s+/g, '-'))}">${esc(sp.temper)}</span></div>
+        <ul class="hunt-tips">${(sp.tips || []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>` : ''}
+      ${sp.latin ? `<button class="btn sound" data-sound="${esc(sp.latin)}">🔊 Play its call</button><div class="sound-credit" data-credit="${esc(sp.latin)}"></div>` : ''}
+      ${sp.spots ? `<p class="pop-rw">${sp.spots.toLocaleString()} spawn spots inside this border. The brighter the heat map, the more spawn spots are packed there.</p>` : ''}
       ${sp.g.startsWith('Legendary') ? '<p class="pop-rw">The circle is its search area around the game-data spawn point. Tick it off in the Collectibles tab.</p>' : ''}
       <button class="btn ghost" data-wildoff="${sp.id}">Hide ${esc(sp.n)}</button></div>`;
   }
@@ -546,11 +549,17 @@
     wildLayers[id]?.remove(); delete wildLayers[id];
     if (on) {
       const sp = (await loadWildIndex()).find(s => s.id === id);
-      const rings = await fetch(`wild/${id}.json`).then(r => r.json());
+      const { a: rings, p: pts } = await fetch(`wild/${id}.json`).then(r => r.json());
       if (!wildOn.has(id)) return; // switched off while loading
       const c = wildColor(id);
-      wildLayers[id] = L.polygon(rings, { color: c, weight: 2, opacity: 0.95, fillColor: c, fillOpacity: 0.18 })
-        .bindPopup(() => wildPopup(sp), popOpts).addTo(map);
+      const area = L.polygon(rings, { color: c, weight: 2, opacity: 0.95, fillColor: c, fillOpacity: pts.length ? 0.06 : 0.18 })
+        .bindPopup(() => wildPopup(sp), popOpts);
+      // heat map of the spawn points: where they cluster is where you'll most often find the animal
+      const heat = pts.length && L.heatLayer ? L.heatLayer(pts, { radius: 14, blur: 16, minOpacity: 0.25, max: Math.min(8, Math.max(1, pts.length / 150)),
+        gradient: { 0.3: '#3b2a5c', 0.55: '#b3261e', 0.8: '#f2a33a', 1: '#fff3b0' } }) : null;
+      wildLayers[id] = L.layerGroup(heat ? [heat, area] : [area]).addTo(map);
+      wildLayers[id].getBounds = () => area.getBounds();
+      wildLayers[id].setStyle = o => area.setStyle(o);
       if (fly) {
         if (mobileMQ.matches) setSheet('peek');
         map.flyToBounds(wildLayers[id].getBounds(), { ...sheetPad(), maxZoom: 5, duration: 0.8 });
@@ -561,6 +570,46 @@
     renderLegend();
     if (tab === 'wild') renderList();
   }
+  // ---- animal calls: a real recording of the species from Wikimedia Commons (free-licensed), looked up on demand ----
+  const player = new Audio();
+  const soundCache = {};
+  async function findSound(latin) {
+    if (latin in soundCache) return soundCache[latin];
+    const q = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=10'
+      + '&gsrsearch=' + encodeURIComponent(`"${latin}" filetype:audio`) + '&prop=videoinfo&viprop=url|derivatives|extmetadata&viextmetadatafilter=LicenseShortName';
+    try {
+      const d = await fetch(q).then(r => r.json());
+      const canOgg = !!player.canPlayType('audio/ogg; codecs="vorbis"');
+      for (const p of Object.values(d.query?.pages || {}).sort((a, b) => a.index - b.index)) {
+        const vi = p.videoinfo?.[0]; if (!vi) continue;
+        const mp3 = (vi.derivatives || []).find(x => /mpeg|mp3/i.test(x.type || x.transcodekey || ''));
+        const src = mp3?.src || (/\.(mp3|wav|m4a)$/i.test(vi.url) || (canOgg && /\.(ogg|oga)$/i.test(vi.url)) ? vi.url : null);
+        if (src) return (soundCache[latin] = { src, title: p.title.replace(/^File:/, ''), page: vi.descriptionurl, lic: vi.extmetadata?.LicenseShortName?.value || '' });
+      }
+    } catch { /* offline or blocked: fall through to "not found" */ }
+    return (soundCache[latin] = null);
+  }
+  function showCredit(latin, root) {
+    const el = root.querySelector(`[data-credit="${CSS.escape(latin)}"]`), s = soundCache[latin];
+    if (!el) return;
+    el.innerHTML = s ? `Real recording of this species: <a href="${s.page}" target="_blank" rel="noopener">${esc(s.title)}</a>${s.lic ? ` (${esc(s.lic)})` : ''}, Wikimedia Commons.`
+      : s === null ? `No recording found. <a href="https://www.youtube.com/results?search_query=${encodeURIComponent('RDR2 ' + latin + ' sound')}" target="_blank" rel="noopener">Search for one ▶</a>` : '';
+  }
+  map.on('popupopen', e => { const b = e.popup.getElement().querySelector('[data-sound]'); if (b) findSound(b.dataset.sound).then(() => showCredit(b.dataset.sound, e.popup.getElement())); });
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-sound]'); if (!b) return;
+    const latin = b.dataset.sound, root = b.closest('.pop') || document;
+    if (!player.paused && player.dataset.latin === latin) { player.pause(); b.textContent = '🔊 Play its call'; return; }
+    // iOS only allows play() straight from a tap, so start it synchronously when the recording is already known
+    if (!(latin in soundCache)) { b.textContent = 'Finding a recording…'; await findSound(latin); }
+    showCredit(latin, root);
+    const s = soundCache[latin];
+    if (!s) { b.textContent = '🔇 No recording'; return; }
+    player.src = s.src; player.dataset.latin = latin;
+    player.play().then(() => { b.textContent = '⏸ Stop'; }).catch(() => { b.textContent = '🔊 Tap again to play'; });
+    player.onended = () => { b.textContent = '🔊 Play its call'; };
+  });
+
   function renderLegend() {
     let el = $('wild-legend');
     if (!el) { el = document.createElement('div'); el.id = 'wild-legend'; document.body.appendChild(el); }
@@ -589,7 +638,7 @@
         const on = wildOn.has(s.id);
         html += `<li class="wild-row ${on ? 'on' : ''}" style="--c:${on ? wildColor(s.id) : 'var(--line)'}">
           ${s.img ? `<img class="thumb" src="${s.img}" alt="" loading="lazy">` : '<span class="thumb"></span>'}
-          <span class="txt"><span class="nm">${esc(s.n)}</span><span class="desc">${esc(s.cond)}</span></span>
+          <span class="txt"><span class="nm">${esc(s.n)}${s.temper && s.temper !== 'Harmless' ? ` <span class="tag-chip sm t-${esc(s.temper.toLowerCase().replace(/\s+/g, '-'))}">${esc(s.temper)}</span>` : ''}</span><span class="desc">${esc(s.cond)}</span></span>
           <label class="switch-ui"><input type="checkbox" role="switch" data-wild="${s.id}" ${on ? 'checked' : ''} aria-label="Show ${esc(s.n)} habitat"><span></span></label></li>`;
       }
       html += '</ul>';

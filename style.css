@@ -261,6 +261,20 @@ body[data-tab="wild"] .tools .switch { display: none; }
 #wild-legend i { width: 10px; height: 10px; border-radius: 50%; }
 #wild-legend .wl-clear { padding: 6px 10px; color: var(--muted); }
 
+.hunt-box { margin: 8px 0; padding: 8px 10px; border-radius: 8px; background: #120e0b; border: 1px solid var(--line); }
+.hunt-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.hunt-tips { margin: 6px 0 0; padding-left: 18px; font-size: 13px; color: #d8cbb2; }
+.hunt-tips li { margin: 3px 0; }
+.tag-chip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; background: #3a3027; color: var(--text); }
+.tag-chip.sm { padding: 1px 6px; font-size: 10px; vertical-align: 1px; }
+.t-very-dangerous, .t-dangerous { background: #6b1f18; color: #ffd9d4; }
+.t-venomous { background: #3f5a1f; color: #e4f5c9; }
+.t-defensive { background: #6b4a18; color: #ffe6b8; }
+.t-legendary { background: #5a4a14; color: var(--gold); }
+.btn.sound { margin: 4px 0 2px; background: #2a2214; border: 1px solid #6b5a2a; color: var(--gold); }
+.sound-credit { font-size: 11px; color: var(--muted); margin-bottom: 8px; min-height: 1em; }
+.sound-credit a { color: var(--muted); }
+
 /* ---------- phones: bottom sheet (tuned for iPhone 13, 390x844) ---------- */
 @media (max-width: 800px) {
   body { display: block; }
@@ -301,3 +315,6 @@ body[data-tab="wild"] .tools .switch { display: none; }
   .rdr-popup .leaflet-popup-content { margin: 12px; max-height: 52vh; overflow-y: auto; }
   #wild-legend { left: 12px; right: 12px; }
 }
+
+/* the heat map is display-only: let taps reach the areas, regions and pins underneath */
+.leaflet-heatmap-layer { pointer-events: none; }

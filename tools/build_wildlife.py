@@ -4,6 +4,7 @@ import json, re, os, shutil, collections, numpy as np
 from shapely.geometry import Point, box, mapping
 from shapely.ops import unary_union
 OUT = '.'
+from species_info import info, LEGEND_LATIN
 Mr = np.load('Mr.npy')                      # RDOMap coords -> our map coords (affine, fitted on 60 shared collectibles)
 scale = np.sqrt(abs(np.linalg.det(Mr[:2])))  # map units per RDOMap unit
 L = json.load(open('RDOMap/langs/en.json'))
@@ -59,19 +60,20 @@ def habitat_text(name):
 
 os.makedirs(f'{OUT}/wild', exist_ok=True)
 species = []
-def add(group, key, name, area, spots, cond):
+def add(group, key, name, area, spots, cond, pts=()):
   if area is None or area.is_empty: return
   img = None
   if os.path.exists(IMG + key + '.png'):
     shutil.copy(IMG + key + '.png', f'{OUT}/wild/{key}.png'); img = f'wild/{key}.png'
-  species.append({'id': key, 'g': group, 'n': name, 'img': img, 'a': to_leaflet(area), 'spots': spots, 'cond': cond, 'hab': habitat_text(name)})
+  species.append({'id': key, 'g': group, 'n': name, 'img': img, 'a': to_leaflet(area), 'p': [[round(float(a), 2), round(float(b), 2)] for a, b in pts],
+                  'spots': spots, 'cond': cond, 'hab': habitat_text(name), **info(key, group, cond)})
 
 for col, group in ((hm[0], 'Animals'), (hm[1], 'Birds')):
   for a in col['data']:
     pts = [p for g in a['groups'] for p in spawns.get(g, [])]
     if not pts: continue
     ll = [tf(p['x'], p['y']) for p in pts]
-    add(group, a['key'], L.get('menu.cmpndm.' + a['key'], a['key']), area_from_points(ll), len(pts), conditions(pts))
+    add(group, a['key'], L.get('menu.cmpndm.' + a['key'], a['key']), area_from_points(ll), len(pts), conditions(pts), ll)
 # fish: habitat grid cells
 for a in hm[2]['data']:
   cells = []
@@ -86,11 +88,12 @@ for k, pts in spawns.items():
   m = re.match(r'ANIMAL_HORSE_WILD_(.+)', k)
   if not m or not pts: continue
   name = m.group(1).replace('_', ' ').title()
-  add('Wild horses', k.lower(), name, area_from_points([tf(p['x'], p['y']) for p in pts], 1.4), len(pts), conditions(pts))
+  ll = [tf(p['x'], p['y']) for p in pts]
+  add('Wild horses', k.lower(), name, area_from_points(ll, 1.4), len(pts), conditions(pts), ll)
 
 species.sort(key=lambda s: (['Animals', 'Birds', 'Fish', 'Wild horses'].index(s['g']), s['n']))
 for sp in species:
-  json.dump(sp.pop('a'), open(f"{OUT}/wild/{sp['id']}.json", 'w'), separators=(',', ':'))
+  json.dump({'a': sp.pop('a'), 'p': sp.pop('p')}, open(f"{OUT}/wild/{sp['id']}.json", 'w'), separators=(',', ':'))
 json.dump(species, open(f'{OUT}/wildlife.json', 'w'), separators=(',', ':'))
 print(len(species), collections.Counter(s['g'] for s in species), 'size KB', os.path.getsize(f'{OUT}/wildlife.json') // 1024,
       'no habitat text:', [s['n'] for s in species if not s['hab'] and s['g'] != 'Wild horses'][:40])
@@ -113,7 +116,12 @@ for it in items:
   if m and (m[0].get('generalLocation') or {}).get('summary'):
     t = re.sub(r'thumb\|[^ ]+ ?', '', m[0]['generalLocation']['summary'])
     if 'is a rare species' not in t: sp['hab'] = t
-  json.dump(to_leaflet(circle), open(f"{OUT}/wild/{key}.json", 'w'), separators=(',', ':'))
+  k2 = it['id'].split('-', 1)[1]
+  if it['c'] == 'animal':
+    sp['latin'] = LEGEND_LATIN.get(k2)
+    sp['tips'] = ['Inside the circle, use Eagle Eye to find and follow 3 clues to the animal.', 'Use a Rifle with Express or Explosive ammo; legendary pelts are always perfect.']
+    sp['temper'] = 'Legendary'
+  json.dump({'a': to_leaflet(circle), 'p': []}, open(f"{OUT}/wild/{key}.json", 'w'), separators=(',', ':'))
   legend.append(sp)
 species = [s for s in json.load(open(f'{OUT}/wildlife.json')) if not s['g'].startswith('Legendary')]
 json.dump(legend + species, open(f'{OUT}/wildlife.json', 'w'), separators=(',', ':'))
