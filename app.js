@@ -8,12 +8,14 @@
   const MISSION = {};
   for (const ch of CH) for (const [id, n, opt] of ch.missions) MISSION[id] = { id, n, opt: !!opt, ch: ch.n };
   const START = Object.fromEntries(S.starts.map(s => [s.id, s]));
-  const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items', money: 'Money & valuables', explore: 'Exploring & secrets' };
-  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot', 'pamph', 'trinket', 'poi', 'secret', 'early']);
+  const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items', money: 'Money & valuables', explore: 'Exploring & secrets', world: 'World: places, pickups & services' };
+  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot', 'pamph', 'trinket', 'poi', 'secret', 'early', 'horse', 'stranger', 'crime', 'event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service']);
+  // reference layers: shown on the map but not counted towards 100%
+  const REF = new Set(['event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service']);
   const ICON = {
     dino: 'icons/dino.png', carving: 'icons/carving.png', dream: 'icons/dream.png', card: 'icons/card.svg',
     treasure: 'icons/treasure.png', grave: 'icons/grave.png', animal: 'icons/animal.png', fish: 'icons/fish.png',
-    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg', pamph: 'icons/pamphlet.svg', trinket: 'icons/trinket.svg', poi: 'icons/poi.svg', secret: 'icons/secret.svg', early: 'icons/weapon.svg',
+    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg', pamph: 'icons/pamphlet.svg', trinket: 'icons/trinket.svg', poi: 'icons/poi.svg', secret: 'icons/secret.svg', early: 'icons/weapon.svg', horse: 'icons/horse.png', stranger: 'icons/stranger.png', crime: 'icons/crime.png', event: 'icons/event.png', shack: 'icons/shack.png', pickup: 'icons/pickup.png', game: 'icons/game.png', herb: 'icons/herb.png', fishspot: 'icons/fishspot.png', service: 'icons/service.png',
   };
   const iconOf = it => it.ic ? (/^(weapon|hat|goldbar|stash)$/.test(it.ic) ? `icons/${it.ic}.svg` : `icons/${it.ic}.png`) : ICON[it.c];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -24,7 +26,13 @@
   const done = new Set(load('rdr2map.done', []).filter(id => ITEM[id]));
   const story = new Set(load('rdr2map.story', []));
   // ponytail: exotics have ~250 spawn markers, so they start hidden to keep the first view readable
-  const hiddenCats = new Set(load('rdr2map.hiddenCats', ['exotic', 'poi']));
+  const DEFAULT_HIDDEN = ['exotic', 'poi', 'stranger', 'crime', 'event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service'];
+  const hiddenCats = new Set(load('rdr2map.hiddenCats', DEFAULT_HIDDEN));
+  { // categories added since this browser last visited start hidden if they're busy layers
+    const known = new Set(load('rdr2map.knownCats', D.cats.map(c => c.id)));
+    for (const c of D.cats) if (!known.has(c.id) && DEFAULT_HIDDEN.includes(c.id)) hiddenCats.add(c.id);
+    save('rdr2map.knownCats', D.cats.map(c => c.id)); save('rdr2map.hiddenCats', [...hiddenCats]);
+  }
   const openCats = new Set(load('rdr2map.openCats', []));
   const openChs = new Set(load('rdr2map.openChs', []));
   let showDone = load('rdr2map.showDone', false);
@@ -229,6 +237,7 @@
       ${it.l.length ? lookLinks(`${c.name.replace(/s$/, '')} ${it.n} ${it.c === 'card' ? it.g : it.sub || ''} location`) : ''}
       ${to && to[2] ? `<p class="pop-rw">Spot for when you're camped at ${esc(to[2])}: ${to[3]} spawn points close together. Mail it from ${esc(to[1])}.</p>` : ''}
       ${it.wild || to ? `<div class="pop-links">${it.wild ? `<button class="btn ghost sm" data-habitat="${it.wild}">Show where it lives</button>` : ''}${to ? `<button class="btn ghost sm" data-goto="${to[0].join(',')}">${it.c === 'hunt' ? 'Deliver' : 'Part'}: ${esc(to[1])}</button>` : ''}</div>` : ''}
+      ${it.guide ? `<a class="guide-link" href="${esc(it.guide)}" target="_blank" rel="noopener">Full guide ↗</a>` : ''}
       <button class="btn ${isDone ? 'ghost' : ''}" data-toggle="${it.id}">${isDone ? 'Mark as not collected' : '✓ Mark as collected'}</button>
     </div>`;
   }
@@ -261,7 +270,7 @@
 
   // ---- logic ----
   const matches = it => !query || (it.n + ' ' + (it.g || '') + ' ' + (it.sub || '') + ' ' + it.d).toLowerCase().includes(query);
-  const regionItems = id => D.items.filter(i => i.r.includes(id));
+  const regionItems = id => D.items.filter(i => i.r.includes(id) && !REF.has(i.c));
   const progress = list => [list.filter(i => done.has(i.id)).length, list.length];
   const scoped = () => D.items.filter(i => (!region || i.r.includes(region)) && matches(i));
 
@@ -369,7 +378,7 @@
   }
 
   function renderHeader() {
-    const [d, t] = progress(D.items);
+    const [d, t] = progress(D.items.filter(i => !REF.has(i.c)));
     const p = t ? Math.floor(100 * d / t) : 0;
     $('pct').textContent = p + '%';
     $('ring').style.setProperty('--p', (t ? d / t : 0) * 360 + 'deg');
@@ -447,7 +456,7 @@
               body += `<div class="sub-h"><span>${esc(g)}</span><span class="${gd === gt ? 'full' : ''}">${gd}/${gt}</span>${rw}</div><ul>${itemRows(gi)}</ul>`;
             }
           } else body = `<ul>${itemRows(its)}</ul>`;
-          if (c.id === 'gang') body += '<p class="note">Not tied to a map location.</p>';
+          if (REF.has(c.id)) body += '<p class="note">Reference layer: not counted towards 100%.</p>';
         }
         const hidden = hiddenCats.has(c.id);
         sect += `<section class="cat ${open ? 'open' : ''} ${d === t ? 'complete' : ''} ${catNeeds.length ? 'is-locked' : ''}" style="--c:${c.color}">
@@ -458,7 +467,7 @@
               <span class="cat-count">${d}/${t}</span>
               <span class="chev">▾</span>
             </button>
-            ${c.id === 'gang' ? '<span class="eye-ph"></span>' : `<button class="eye ${hidden ? 'off' : ''}" data-eye="${c.id}" title="${hidden ? 'Show' : 'Hide'} on map" aria-label="${hidden ? 'Show' : 'Hide'} ${esc(c.name)} on map">${hidden ? '◌' : '◉'}</button>`}
+            <button class="eye ${hidden ? 'off' : ''}" data-eye="${c.id}" title="${hidden ? 'Show' : 'Hide'} on map" aria-label="${hidden ? 'Show' : 'Hide'} ${esc(c.name)} on map">${hidden ? '◌' : '◉'}</button>
           </div>
           ${bar(d, t)}
           ${body && (open || catNeeds.length) ? `<div class="cat-body">${body}</div>` : ''}

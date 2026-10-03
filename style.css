@@ -336,3 +336,6 @@ body[data-tab="wild"] .tools .switch { display: none; }
 .kit dt { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; padding-top: 2px; }
 .kit dd { margin: 0; }
 .pop-links .btn.sm { flex: 1; margin: 0; padding: 8px 6px; font-size: 13px; min-height: 36px; }
+.guide-link { display: block; text-align: center; margin: 0 0 10px; color: var(--gold); font-size: 13px; }
+/* fractional zoom leaves hairline gaps between tiles; overlap them by a pixel */
+.leaflet-container img.leaflet-tile { mix-blend-mode: normal; width: 257px !important; height: 257px !important; }

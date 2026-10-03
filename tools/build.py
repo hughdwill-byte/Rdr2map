@@ -349,6 +349,114 @@ for it in items:
   it['d']=('The pin follows your story progress: it shows a good spot near your current camp. Kill it cleanly with the right weapon (3-star animal, see the Wildlife tab), '
            'pick up the carcass without skinning it, then mail it to Mrs. L. Hobbs at a post office. '
            'Collect her reward there 24 hours later to get the next request.' + (' Epilogue only.' if ep else ''))
+import collections
+# ---- ShackMaps (shackmaps.com) pin positions and extra categories ----
+# Their map is web-mercator; Mm maps (lng, mercator y) onto ours. Fitted on 69 shared collectibles: median error 0.05.
+from scipy.optimize import linear_sum_assignment
+SM=json.load(open('sm_full.json')); Mm=np.load('Mm.npy')
+def smll(loc):
+  x,y=loc; my=np.degrees(np.log(np.tan(np.pi/4+np.radians(y)/2)))
+  return P(*(np.array([x,my,1])@Mm))
+def SG(g): return [p for p in SM if p['g']==g]
+def snap(its, sps):
+  its=[i for i in its if i['l']]
+  if not its or not sps: return
+  A=np.array([i['l'][0] for i in its]); B=np.array([smll(p['loc']) for p in sps])
+  r,c=linear_sum_assignment(np.linalg.norm(A[:,None]-B[None],axis=2))
+  for a,b in zip(r,c):
+    its[a]['l']=[[float(B[b][0]),float(B[b][1])]]
+    if sps[b].get('guide'): its[a]['guide']=sps[b]['guide']
+def avail(t):
+  m=re.search(r'Chapter (\d)',t or '')
+  if m: return f' Available from Chapter {m.group(1)} (per ShackMaps).'
+  if 'pilogue' in (t or ''): return ' Available in the Epilogue (per ShackMaps).'
+  return ''
+CAT=lambda c:[i for i in items if i['c']==c]
+for g,c in (('Collectibles › Dinosaur Bones','dino'),('Collectibles › Dreamcatchers','dream'),('Collectibles › Rock Carvings','carving'),('Collectibles › Graves','grave'),('Pickups › Gold Bars',None)):
+  snap(CAT(c) if c else [i for i in items if i.get('g')=='Gold Bars'],SG(g))
+CARDSET={'Amazing Inventions':'Amazing Inventions','Artists, Writers & Poets':'Artists, Painters, Writers & Poets','Breeds of Horses':'Breeds of Horses','Gems of Beauty':'Fairest Flowers & Gems of Beauty',
+ 'Famous Gunslingers':'Famous Gunslingers & Outlaws','Fauna of America':'Fauna of North America','Flora of North America':'Flora of North America','Marvels of Travel':'Marvels of Travel & Locomotion',
+ 'Prominent Americans':'Prominent Americans','Stars of the Stage':'Stars of the Stage','World Champions':"The World's Champions",'Vistas of America':'Vistas, Scenery & Cities of America'}
+for k,v in CARDSET.items(): snap([i for i in CAT('card') if i['g']==v],SG('Collectibles › Cigarette Cards › '+k))
+def nk(t): return re.sub(r'[^a-z]','',t.lower().replace('legendary','').replace('giaguaro','').replace('lake',''))
+for c,g in (('animal','Collectibles › Legendary Animals'),('fish','Collectibles › Legendary Fish')):
+  sp={nk(p['t']):p for p in SG(g)}
+  for it in CAT(c):
+    k=nk(it['n']).replace('bullgator','alligator')
+    m=sp.get(k) or next((v for kk,v in sp.items() if kk in k or k in kk or kk.split('bison')[0]==k.split('bison')[0] and 'bison' in k),None)
+    if not m: print('no SM match',it['n']); continue
+    it['l']=[smll(m['loc'])]
+    if m.get('guide'): it['guide']=m['guide']
+pike=[p for p in SG('Collectibles › Legendary Fish') if 'Pike' in p['t']]
+if pike: add('fish','northern-pike','Legendary Northern Pike',[smll(pike[0]['loc'])],'"The Tyrant": only catchable during the Stranger mission The Veteran II, and not part of Jeremy Gill\'s list.')
+TRG={'Jack Hall Gang':'Jack Hall Gang','High Stakes':'High Stakes','Landmarks of Riches':'Landmarks of Riches','Le Tresor Des Morts':'Le Trésor des Morts','Mended Map':'Torn Treasure Map (Mended Map)','Poisonous Trail':'The Poisonous Trail','The Elemental Trail':'The Elemental Trail'}
+for k,v in TRG.items(): snap([i for i in CAT('treasure') if i['g']==v],SG('Collectibles › Treasure Hunts › '+k))
+sk=SG('Collectibles › Treasure Hunts › Sketched Map Treasure')
+skm=[p for p in sk if p['t']=='Sketched Map']; skt=[p for p in sk if p['t']!='Sketched Map']
+if skm and skt:
+  add('treasure','sketched-map','Sketched Map: Reed Cottage chimney',[smll(skm[0]['loc'])],'Search the chimney of Reed Cottage for the Sketched Map.',grp='Sketched Map Treasure')
+  add('treasure','sketched-gold','Treasure: gold ingot',[smll(skt[0]['loc'])],'A gold ingot under a small rock at the spot the sketch shows.',grp='Sketched Map Treasure')
+EXG={'Alligator Eggs':'Gator Eggs'}
+for it in CAT('exotic'):
+  base=re.sub(r' ×\d+$','',it['n']).replace("Acuna's Star Orchids","Acuna's Star Orchid")
+  base=EXG.get(base,base); cands=[base,base.rstrip('s'),base.replace('Orchids','Orchid')]
+  sp=next((SG('Exotic Plants & Items › '+b) for b in cands if SG('Exotic Plants & Items › '+b)),None)
+  if sp: it['l']=[smll(p['loc']) for p in sp]
+  else: print('no SM exotic',it['n'])
+# recipe pamphlets: their world pickups
+PAM={'Volatile Fire Bottle':'volatile-fire-bottle','Poison Arrow':'poison-arrow','Special Snake Oil':'special-snake-oil','Poison Throwing Knife':'poison-throwing-knife','Incendiary Buckshot':'incendiary-buckshot',
+     'Volatile Dynamite':'volatile-dynamite','Homing Tomahawk':'homing-tomahawk','Dynamite Arrow':'dynamite-arrow'}
+NEWPAM={'Special Health Cure':'Crafts the Special Health Cure (refills and fortifies Health). In a chest on the scaffolding at the Face in Cliff.',
+        'Special Horse Reviver':'Crafts the Special Horse Reviver. In a lockbox tucked inside a tree stump.',
+        'Special Miracle Tonic':'Crafts the Special Miracle Tonic (refills and fortifies all cores). In a lockbox on the ground by a tent.',
+        'Special Horse Stimulant':'Crafts the Special Horse Stimulant. In the same lockbox as a gold bar.',
+        'Horse Meal':'Crafts Horse Meal. Kieran\'s reward for his Chapter 3 item request; it appears on Arthur\'s table in camp.'}
+byid={i['id']:i for i in items}
+for name in set(p['t'].strip() for p in SG('Pickups › Recipe Pamphlets')):
+  spots=[smll(p['loc']) for p in SG('Pickups › Recipe Pamphlets') if p['t'].strip()==name]
+  if name in PAM:
+    it=byid['pamph-'+PAM[name]]; it['l']=spots; it['g']='Found in the world'; it.pop('q',None)
+    it['d']=re.sub(r' Fences: .*? Pins show every fence\.','',it['d'])
+  elif name in NEWPAM: add('pamph',re.sub(r'\W+','-',name.lower()),name+' Pamphlet',spots,NEWPAM[name],grp='Found in the world')
+  else: print('pamphlet not mapped',name)
+TRK={'Crow Beak Trinket':'trinket-crow','Turtle Shell Trinket':'trinket-turtle','Hawk Talon Trinket':'trinket-hawk','Shark Tooth Trinket':'trinket-shark','Cat Eye Trinket':'trinket-cat'}
+for p in SG('Pickups › Trinkets'):
+  if p['t'] in TRK: byid[TRK[p['t']]]['l']=[smll(p['loc'])]; byid[TRK[p['t']]]['d']=byid[TRK[p['t']]]['d'].replace(' (pin approx)','')
+  elif 'Arrowhead' in p['t']: add('trinket','arrowhead','Ancient Arrowhead',[smll(p['loc'])],'Reward for finding all 20 dreamcatchers: it then appears at this spot.',grp='Trinkets: found in the world')
+# unique weapons & hats: use their list, keeping our ids (and ticks) where the names match
+WG={'Pickups › Hats':'Hats','Pickups › Weapons › Revolvers & Pistols':'Weapons','Pickups › Weapons › Rifles':'Weapons','Pickups › Weapons › Shotguns':'Weapons','Pickups › Weapons › Hatchets':'Weapons','Pickups › Weapons › Knives':'Weapons','Pickups › Weapons › Tomahawks':'Weapons','Pickups › Masks':'Masks'}
+old={nk(i['n']):i for i in CAT('gear')}
+items[:]=[i for i in items if i['c']!='gear']
+seen=collections.Counter()
+for g,grp in WG.items():
+  for p in SG(g):
+    k=nk(p['t']); seen[k]+=1; o=old.pop(k,None)
+    gid=o['id'].split('-',1)[1] if o else re.sub(r'\W+','-',p['t'].lower()).strip('-')+('' if seen[k]==1 else f'-{seen[k]}')
+    add('gear',gid,p['t'],[smll(p['loc'])],(o['d'] if o and o.get('d') else 'Unique '+{'Hats':'hat','Masks':'mask','Weapons':'weapon'}[grp]+'.')+avail(p['d']),grp=grp,ic='weapon' if grp=='Weapons' else 'hat',**({'guide':p['guide']} if p.get('guide') else {}))
+print('gear: dropped (not on ShackMaps):',[o['n'] for o in old.values()])
+# gang item requests: show where each requester's items are
+for it in CAT('gang'):
+  sp=SG('Collectibles › Item Requests › '+it['g']) or (SG('Collectibles › Item Requests') if it['g']=='Uncle' else [])
+  if sp: it['l']=[smll(p['loc']) for p in sp]
+# new layers
+NEWC=[('horse','Collectibles › Rare Horses',None),('stranger','Events & Quests › Strangers',None),
+      ('crime',('Events & Quests › Gang Hideout','Events & Quests › Homestead Robberies','Events & Quests › Shop Robberies','Events & Quests › Gunslinger Duels','Events & Quests › Serial Killer Mystery','Events & Quests › Bounty Hunting'),None),
+      ('event','Events & Quests › Random Events',None),('shack','Collectibles › Shacks',None),
+      ('pickup',tuple('Pickups › '+x for x in ('Letters','Notes','Book','Meteorites','Aged Pirate Rum','Ginseng Elixir','Gold Nugget','Valerian Root','Miscellaneous')),None),
+      ('game','Activities',None),('herb','Plants & Herbs',None),('fishspot','Fish',None),('service','Services',None)]
+LABEL={'horse':'Rare horse','stranger':'Stranger mission','crime':'','event':'Random event','shack':'Shack','pickup':'Pickup','game':'Gambling & games','herb':'Herb','fishspot':'Fishing spot','service':'Service'}
+for c,src,_ in NEWC:
+  srcs=src if isinstance(src,tuple) else (src,)
+  ps=[p for p in SM if any(p['g']==s or p['g'].startswith(s+' ›') for s in srcs)]
+  for n,p in enumerate(ps,1):
+    parts=p['g'].split(' › ')
+    leaf=parts[-1]
+    grp={'crime':('Bounties' if 'Bounty' in p['g'] else leaf),'stranger':None,'event':None,'shack':None,'horse':None}.get(c,leaf)
+    if c=='crime' and 'Bounty' in p['g']: title=f"Bounty: {leaf} ({p['t']})"
+    else: title=p['t']
+    kind=LABEL[c] or leaf.rstrip('s')
+    add(c,f'{n:03d}',title,[smll(p['loc'])],f'{kind}.'+avail(p['d']),**({'grp':grp} if grp else {}),**({'guide':p['guide']} if p.get('guide') else {}))
+print('ShackMaps import done')
 # regions per item
 for it in items:
   it['lr']=[region(*l) for l in it['l']]
@@ -356,7 +464,7 @@ for it in items:
 CATS=[('dino','Dinosaur Bones','main','#e3a33b'),('carving','Rock Carvings','main','#6fb3c9'),('dream','Dreamcatchers','main','#d1584b'),('card','Cigarette Cards','main','#c9a86a'),('treasure','Treasure Maps','main','#e6c23e'),('grave','Graves','main','#9aa6b8'),
       ('animal','Legendary Animals','hunt','#d98a3d'),('fish','Legendary Fish','hunt','#4fa3d9'),('hunt','Hunting Requests','hunt','#8fbf5a'),
       ('exotic','Exotics','side','#b77fd1'),('gang','Gang Member Requests','side','#d9a07a'),('gear','Unique Weapons & Hats','side','#c7c7c7'),
-      ('loot','Valuable Stashes','money','#e8b923'),('pamph','Crafting Pamphlets','side','#d4b483'),('trinket','Talismans & Trinkets','side','#9fd0c7'),('early','Free Early Weapons','explore','#e07b5a'),('secret','Secrets & Supernatural','explore','#8f86e0'),('poi','Points of Interest','explore','#c2b280')]
+      ('loot','Valuable Stashes','money','#e8b923'),('pamph','Crafting Pamphlets','side','#d4b483'),('trinket','Talismans & Trinkets','side','#9fd0c7'),('early','Free Early Weapons','explore','#e07b5a'),('secret','Secrets & Supernatural','explore','#8f86e0'),('poi','Points of Interest','explore','#c2b280'),('horse','Rare Horses','side','#b08d57'),('stranger','Strangers','explore','#e0c068'),('crime','Hideouts, Robberies & Bounties','explore','#c0504d'),('event','Random Events','world','#a89a8a'),('shack','Shacks','world','#9c8468'),('pickup','Letters, Notes & Pickups','world','#d9c9a3'),('game','Gambling & Games','world','#7fa6c9'),('herb','Plants & Herbs','world','#7fbf6a'),('fishspot','Fishing Spots','world','#5fa8c8'),('service','Shops & Services','world','#bfb5a0')]
 from collections import Counter; print(Counter(i['c'] for i in items)); print('no region:',[i['id'] for i in items if i['l'] and not i['r']])
 out={'cats':[dict(id=a,name=b,group=c,color=d) for a,b,c,d in CATS],'regions':[dict(id=k,name=v[0],state=v[1]) for k,v in meta.items()],'geo':json.load(open('regions.geojson')),'items':items}
 open('data.js','w').write('// Generated by build.py — see README for sources.\nwindow.RDR={};RDR.data='+json.dumps(out,ensure_ascii=False,separators=(',',':'))+';\n')
