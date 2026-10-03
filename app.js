@@ -116,7 +116,8 @@
   if (canHover) L.control.zoom({ position: 'topright' }).addTo(map); // touch screens pinch instead
   const HOME = L.latLngBounds([-168, 12], [-24, 222]);
   // keep fitted areas clear of the bottom sheet on phones
-  const sheetPad = () => mobileMQ.matches ? { paddingTopLeft: [16, 16], paddingBottomRight: [16, $('side').offsetHeight + 16] } : { padding: [30, 30] };
+  const sheetH = () => sheet === 'peek' ? 150 + (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0) : $('side').offsetHeight;
+  const sheetPad = () => mobileMQ.matches ? { paddingTopLeft: [16, 60], paddingBottomRight: [16, sheetH() + 16] } : { padding: [30, 30] };
   const goHome = (animate = true) => animate ? map.flyToBounds(HOME, { ...sheetPad(), duration: 0.8 }) : map.fitBounds(HOME, sheetPad());
   const setZoomClass = () => map.getContainer().dataset.zoom = Math.max(2, Math.min(6, Math.floor(map.getZoom())));
   map.on('zoomend', setZoomClass); setZoomClass();
@@ -216,7 +217,9 @@
       <button class="btn ${isDone ? 'ghost' : ''}" data-toggle="${it.id}">${isDone ? 'Mark as not collected' : '✓ Mark as collected'}</button>
     </div>`;
   }
+  map.on('popupclose', () => document.body.classList.remove('popup-open'));
   map.on('popupopen', e => {
+    document.body.classList.add('popup-open');
     if (mobileMQ.matches && sheet !== 'peek') setSheet('peek');
     const el = e.popup.getElement();
     const b = el.querySelector('[data-toggle]');
@@ -288,7 +291,7 @@
     if (mobileMQ.matches) setSheet('peek');
     // aim slightly below the point on phones so it lands above the sheet
     const z = Math.max(map.getZoom(), 6);
-    const c = mobileMQ.matches ? map.unproject(map.project(L.latLng(ll), z).add([0, ($('side').offsetHeight - 120) / 2]), z) : ll;
+    const c = mobileMQ.matches ? map.unproject(map.project(L.latLng(ll), z).add([0, (sheetH() - 120) / 2]), z) : ll;
     map.flyTo(c, z, { duration: 0.8 });
     if (marker) map.once('moveend', () => marker.openPopup());
   }
@@ -534,6 +537,7 @@
       <p><b>When:</b> ${esc(sp.cond)}</p>
       ${sp.hab ? `<p><b>Where:</b> ${esc(sp.hab)}</p>` : ''}
       ${sp.spots ? `<p class="pop-rw">${sp.spots.toLocaleString()} spawn spots inside this border.</p>` : ''}
+      ${sp.g.startsWith('Legendary') ? '<p class="pop-rw">The circle is its search area around the game-data spawn point. Tick it off in the Collectibles tab.</p>' : ''}
       <button class="btn ghost" data-wildoff="${sp.id}">Hide ${esc(sp.n)}</button></div>`;
   }
   async function setWild(id, on, fly = true) {
@@ -577,7 +581,7 @@
     const q = query;
     let html = `<div class="wild-intro">Switch an animal on to see the area where it spawns, outlined on the map, plus when it appears.
       Areas are drawn around every spawn point in the game's data${wildOn.size ? ` · <button class="link" data-wildclear="1">hide all (${wildOn.size})</button>` : ''}</div>`;
-    for (const g of ['Animals', 'Birds', 'Fish', 'Wild horses']) {
+    for (const g of ['Legendary animals', 'Legendary fish', 'Animals', 'Birds', 'Fish', 'Wild horses']) {
       const list = wildIndex.filter(s => s.g === g && (!q || s.n.toLowerCase().includes(q)));
       if (!list.length) continue;
       html += `<h2 class="grp">${g}</h2><ul class="wild-list">`;

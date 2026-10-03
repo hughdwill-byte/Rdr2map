@@ -94,3 +94,27 @@ for sp in species:
 json.dump(species, open(f'{OUT}/wildlife.json', 'w'), separators=(',', ':'))
 print(len(species), collections.Counter(s['g'] for s in species), 'size KB', os.path.getsize(f'{OUT}/wildlife.json') // 1024,
       'no habitat text:', [s['n'] for s in species if not s['hab'] and s['g'] != 'Wild horses'][:40])
+
+# Legendary animals & fish: the game puts each one inside a search circle around its game-data position
+# (RDOMap draws legendary areas with radius 3); positions, art and conditions come from data.js.
+from shapely.geometry import Point as _P
+items = json.loads(open(f'{OUT}/data.js').read().split('RDR.data=', 1)[1].strip().rstrip(';'))['items']
+legend = []
+for it in items:
+  if it['c'] not in ('animal', 'fish'): continue
+  lat, lng = it['l'][0]
+  circle = _P(lng, lat).buffer(3 if it['c'] == 'animal' else 1.5, 24)
+  key = 'legendary_' + it['id'].replace('-', '_')
+  sp = {'id': key, 'g': 'Legendary animals' if it['c'] == 'animal' else 'Legendary fish', 'n': it['n'], 'img': it.get('img'),
+        'spots': 0, 'cond': it['d'].split(' Inside the circle')[0].split(' Mail the catch')[0], 'hab': habitat_text(it['n'].replace('Legendary ', '')) and '' or ''}
+  m = [c for c in json.load(open('rdr2-complete-guide/src/data/compendium.json')) if c['kind'].startswith('legendary') and
+       (c['title'].lower().replace('bullgator', 'bull gator').replace('bighorn', 'big horn').replace('pronghorn', 'pronghorn ram') == it['n'].lower()
+        or c['title'].lower() == it['n'].lower() or c['title'].lower().replace('lake ', '').replace('longnose ', '') == it['n'].lower())]
+  if m and (m[0].get('generalLocation') or {}).get('summary'):
+    t = re.sub(r'thumb\|[^ ]+ ?', '', m[0]['generalLocation']['summary'])
+    if 'is a rare species' not in t: sp['hab'] = t
+  json.dump(to_leaflet(circle), open(f"{OUT}/wild/{key}.json", 'w'), separators=(',', ':'))
+  legend.append(sp)
+species = [s for s in json.load(open(f'{OUT}/wildlife.json')) if not s['g'].startswith('Legendary')]
+json.dump(legend + species, open(f'{OUT}/wildlife.json', 'w'), separators=(',', ':'))
+print('legendary:', len(legend), 'with wiki where:', sum(1 for s in legend if s['hab']))

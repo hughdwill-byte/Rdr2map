@@ -173,6 +173,7 @@ RDR.story = {
     'treasure-landmarks-map1': ['ch7'],
     'treasure-elemental-map1': ['ch8'],
     'hunt-5-waxwing': ['ch7'], 'hunt-5-bat': ['ch7'], 'hunt-5-blue-jay': ['ch7'], 'hunt-5-crow': ['ch7'], 'hunt-5-beaver': ['ch7'],
+    'animal-alligator': ['ch6', 'thats-murfree-country'],
     'loot-gold-braithwaite': ['ch4'], 'loot-gold-shady-belle': ['ch3'],
     'loot-home-willard': ['ch6', 'start-charlotte'], 'loot-home-lonnie': ['ch3'],
   },

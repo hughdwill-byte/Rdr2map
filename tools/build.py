@@ -173,6 +173,20 @@ for t in ('Rare Item','Treasure'):
     if t=='Treasure' and n not in ('Lockbox','Misc.'): continue
     if n=='Misc.': n='Chimney stash'
     add('loot',re.sub(r'\W+','-',(n+'-'+str(round(m['lng']))).lower()),n,[P(m['lat'],m['lng'])],dd or 'Valuable item; sell it to a fence.',grp='Other Valuables',ic='stash')
+# Legendary conditions (Red Dead wiki / guides): per-animal unlocks and per-fish special lures
+LEG_A={'alligator':'Only after "That\'s Murfree Country" (Chapter 6); you first meet it in "Country Pursuits" (Chapter 4).',
+       'grizzly-bear':'Unlocked by "Exit Pursued by a Bruised Ego" (Chapter 2), where Hosea first runs into it.',
+       'panther':'Only appears once you reach rank 9 of the Master Hunter challenges.',
+       'cougar':'New Austin: Epilogue only.','pronghorn':'New Austin: Epilogue only.','tatanka-bison':'New Austin: Epilogue only.'}
+LURE={'bluegill':'Lake','bullhead-catfish':'River','chain-pickerel':'River','gar':'Swamp','largemouth-bass':'River','muskie':'River',
+      'perch':'Lake','redfin-pickerel':'Lake','rock-bass':'Lake','smallmouth-bass':'Lake','sockeye-salmon':'Lake','steelhead-trout':'River','sturgeon':'River'}
+for it in items:
+  k=it['id'].split('-',1)[1]
+  if it['c']=='animal':
+    it['d']=LEG_A.get(k,'Available from Chapter 2.')+' Inside the circle, use Eagle Eye to follow 3 clues to the animal. Use a high-calibre rifle with express or explosive ammo, then sell the pelt to the Trapper.'
+  if it['c']=='fish':
+    it['d']=f"Use the Special {LURE[k]} Lure (Lagras bait shop). Mail the catch to Jeremy Gill." + (' Bites best in the rain.' if k=='largemouth-bass' else '') + (' New Austin: Epilogue only.' if 'hennigans' in str(it.get('lr')) or k in ('largemouth-bass','redfin-pickerel') else '')
+
 # Item art: in-game compendium sketches from RDOMap (public domain). Only exact species matches; no art = no image.
 import shutil, os
 GA='RDOMap/assets/images/icons/game/'
