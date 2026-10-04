@@ -266,7 +266,9 @@
     return `<div class="pop">
       <div class="pop-head"><span class="pin sm" style="--c:${c.color}"><img src="${iconOf(it)}" alt=""></span>
         <div><div class="pop-cat">${esc(c.name)}</div><div class="pop-title">${esc(it.n)}</div></div></div>
-      ${it.img ? `<div class="pop-art"><img src="${it.img}" alt="${esc(it.n)}"></div>` : ''}
+      ${it.img ? `<div class="pop-art"><img src="${it.img}" alt="${esc(it.n)}"></div>`
+        : `<a class="pop-art pop-art-search" href="https://www.google.com/search?tbm=isch&q=${encodeURIComponent(`RDR2 ${it.n}${it.c === 'card' ? ' cigarette card' : ''}`)}" target="_blank" rel="noopener">
+            <img src="${iconOf(it)}" alt=""><span>🔍 See what it looks like</span></a>`}
       ${sub ? `<div class="pop-sub">${sub}</div>` : ''}
       ${it.d ? `<p>${esc(it.d)}</p>` : ''}
       ${it.rw ? `<p class="pop-rw">Set reward: ${esc(it.rw)}</p>` : ''}

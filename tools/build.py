@@ -457,6 +457,32 @@ for c,src,_ in NEWC:
     kind=LABEL[c] or leaf.rstrip('s')
     add(c,f'{n:03d}',title,[smll(p['loc'])],f'{kind}.'+avail(p['d']),**({'grp':grp} if grp else {}),**({'guide':p['guide']} if p.get('guide') else {}))
 print('ShackMaps import done')
+# ---- more item art (public-domain game icons: RDOMap, RDR2CollectorsMap) ----
+RG='RDOMap/assets/images/icons/'; CG='RDR2CollectorsMap/assets/images/icons/game/'
+def art(it, src):
+  if not os.path.exists(src): print('missing art',src); return
+  dst=os.path.basename(src); shutil.copy(src,'items/'+dst); it['img']='items/'+dst
+HERB_F={'Blackberry':'black_berry','Chanterelle':'chanterelles','Raspberry':'red_raspberry',"Ram's Head":'rams_head','Wild Carrot':'wild_carrots'}
+FISH_F={'Bluegill':'fish_bluegill','Bullhead Catfish':'fish_bullheadcat_brown','Chain Pickerel':'fish_chainpickerel','Channel Catfish':'fish_channelcatfish','Lake Sturgeon':'fish_lake_sturgeon',
+  'Largemouth Bass':'fish_largemouthbass','Longnose Gar':'fish_longnosegar','Muskie':'fish_muskie_clear','Northern Pike':'fish_northernpike','Perch':'fish_perch','Redfin Pickerel':'fish_redfinpickerel',
+  'Rock Bass':'fish_rockbass','Smallmouth Bass':'fish_smallmouthbass','Sockeye Salmon':'fish_salmon_sockeye','Steelhead Trout':'fish_steelheadtrout'}
+TRK_F={'trinket-beaver':'legendary_item_beaver_tooth','trinket-buck':'provision_role_naturalist_legendary_item_buck_antler','trinket-cougar':'provision_cougar_fang',
+  'trinket-coyote':'legendary_item_coyote_fang','trinket-moose':'legendary_item_moose_antler','trinket-panther':'legendary_item_panther_eye','trinket-wolf':'legendary_item_wolf_heart',
+  'trinket-t-boar':'legendary_item_boar_tusk','trinket-t-bison':'legendary_item_bison_horn','trinket-bison':'legendary_item_bison_horn','trinket-t-alligator':'provision_alligator_tooth',
+  'trinket-owl':'provision_owl_feather','trinket-arrowhead':'provision_arrowhead_flint'}
+ORCH={'Lady of the Night':'lady_of_the_night','Rat Tail':'rat_tail','Moccasin Flower':'moccasin_flower',"Acuna's Star":'acunas_star','Cigar':'cigar','Clamshell':'clamshell',"Dragon's Mouth":'dragons_mouth',
+  'Ghost':'ghost','Lady Slipper':'lady_slipper','Night Scented':'night_scented',"Queen's":'queens',"Sparrow's Egg":'sparrows_egg','Spider':'spider'}
+for it in items:
+  if it.get('img'): continue
+  if it['c']=='herb': art(it,RG+'game/'+HERB_F.get(it['g'],it['g'].lower().replace(' ','_'))+'.png')
+  elif it['c'] in ('fishspot','fish') and (it.get('g') in FISH_F or 'Northern Pike' in it['n']):
+    art(it,RG+'game/animals/'+FISH_F[it.get('g') or 'Northern Pike']+'.png')
+  elif it['id'] in TRK_F: art(it,CG+TRK_F[it['id']]+'.png')
+  elif it['c']=='exotic':
+    k=next((v for kk,v in ORCH.items() if it['n'].startswith(kk+' Orchid')),None)
+    if k: art(it,RG+'sp_orchid_'+k+'.png')
+    elif it['n'].startswith('Alligator Eggs'): art(it,RG+'sp_alligator_eggs.png')
+print('items with art:',sum(1 for i in items if i.get('img')),'of',len(items))
 # regions per item
 for it in items:
   it['lr']=[region(*l) for l in it['l']]

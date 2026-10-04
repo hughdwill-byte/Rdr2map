@@ -351,3 +351,6 @@ body[data-tab="wild"] .tools .switch { display: none; }
 .layers-row input { accent-color: #b3261e; width: 16px; height: 16px; }
 @media (max-width: 760px) { .layers-ctl { margin-top: calc(env(safe-area-inset-top) + 10px) !important; } .layers-panel { max-height: 45vh; } }
 .layers-master .switch-ui { display: block; --c: #b3261e; }
+.pop-art-search { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; height: 110px; text-decoration: none; color: var(--gold); font-size: 13px; }
+.pop-art-search img { width: 44px; height: 44px; opacity: .55; object-fit: contain; }
+.leaflet-popup-content a.pop-art-search, .leaflet-popup-content a.pop-art-search span { color: var(--gold); }
