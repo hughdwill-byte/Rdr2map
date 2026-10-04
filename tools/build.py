@@ -433,6 +433,44 @@ for g,grp in WG.items():
     k=nk(p['t']); seen[k]+=1; o=old.pop(k,None)
     gid=o['id'].split('-',1)[1] if o else re.sub(r'\W+','-',p['t'].lower()).strip('-')+('' if seen[k]==1 else f'-{seen[k]}')
     add('gear',gid,p['t'],[smll(p['loc'])],(o['d'] if o and o.get('d') else 'Unique '+{'Hats':'hat','Masks':'mask','Weapons':'weapon'}[grp]+'.')+avail(p['d']),grp=grp,ic='weapon' if grp=='Weapons' else 'hat',**({'guide':p['guide']} if p.get('guide') else {}))
+# weapons: what has to happen before you can get each one (our wording; q gates the pin)
+FREE='Nothing: just reach it in free roam (Chapter 2 onwards).'
+WREQ={
+ 'algernon-s-revolver':("Finish all five parts of Algernon Wasp's Stranger quest \"Duchesses and Other Animals\" (starts in Saint Denis, Chapter 4).",['ch4']),
+ 'micah-s-revolver':('Finish the final mission, "American Venom". Afterwards it lies by a dead rat on Mount Hagen.',['american-venom']),
+ 'mauser-pistol':('Play "Revenge is a Dish Best Eaten" (Chapter 4): Bronte throws his Mauser at John; pick it up before you leave.',['ch4']),
+ 'calloway-s-revolver':('Beat the other four gunslingers in "The Noblest of Men, and a Woman" (Jimmy Brooks, Chapter 2+). Calloway is the last duel; his gun drops when it ends.',['ch2']),
+ 'otis-miller-s-revolver':("Reach the Epilogue (New Austin) and collect both halves of the torn treasure map: the Hermit Woman's cabin and the Manito Glade cottage.",['ch7','item:treasure-torn-map1','item:treasure-torn-map2']),
+ 'flaco-s-revolver':('Duel Flaco Hernandez as part of "The Noblest of Men, and a Woman" (Chapter 2+), then loot his body.',['ch2']),
+ 'double-action-revolver':('Take on the four men here and leave one alive: he trades the location of his stash, which holds the revolver.',['ch2']),
+ 'midnight-s-pistol':('Duel Billy Midnight on the train as part of "The Noblest of Men, and a Woman" (Chapter 2+).',['ch2']),
+ 'granger-s-revolver':('Duel Emmet Granger at his hoggery as part of "The Noblest of Men, and a Woman" (Chapter 2+).',['ch2']),
+ 'litchfield-repeater':('Only here during "Mrs. Sadie Adler, Widow" (Chapter 6): it sits in Sadie and Arthur\'s camp.',['ch6']),
+ 'rolling-block-rifle':('Only here during the mission "Visiting Hours" (Chapter 6).',['ch6']),
+ 'rare-rolling-block-rifle':('Only during "Magicians for Sport" (Chapter 3): after the cornfield, kill the man upstairs in the barn and take his rifle.',['ch3']),
+ 'carbine-repeater':('Nothing: it is on a frozen body in the snow (Chapter 2 onwards).',['ch2']),
+ 'carbine-repeater-2':('Nothing: it leans against the wall in the left bedroom down the hall (Chapter 2 onwards).',['ch2']),
+ 'lancaster-repeater':("Talk to the boy at the window of the Rhodes gunsmith first; he tells you about the basement. Then break in and take it from the case.",['ch2']),
+ 'rare-shotgun':('Meet the Hermit here and take it from him the first time you meet. If you miss it then, it is gone for good.',['ch2']),
+ 'double-barreled-shotgun':('Nothing: on the mantle above the fireplace (Chapter 2 onwards).',['ch2']),
+ 'pump-action-shotgun':('Nothing: in a case in the left bedroom up the ladder at Chez Porter (Chapter 2 onwards).',['ch2']),
+ 'double-barreled-shotgun-2':('Only during "Paying a Social Call" (Chapter 2), above the fireplace at Six Point Cabin.',['ch2']),
+ 'double-barreled-shotgun-3':('Loot it from the Hermit Woman at her cabin.',['ch2']),
+ 'semi-auto-shotgun':('Take it from the basement case the first time you go in. If you missed it, leave the old woman alive and come back a few days later.',['ch2']),
+ 'cleaver':('Only during the Epilogue mission "Jim Milton Rides, Again?". It is on the first floor of the main house at Hanging Dog Ranch.',['ch7']),
+ 'wide-blade-knife':('Set off the plunger at the cave mouth, crawl past the rubble and turn right.',['ch2']),
+ 'ancient-tomahawk':('Nothing (Chapter 2 onwards). If you lose it, it eventually respawns here.',['ch2']),
+}
+for it in CAT('gear'):
+  k=it['id'].split('-',1)[1]
+  if it.get('g')!='Weapons': continue
+  txt,q=WREQ.get(k,(FREE,['ch2']))
+  rest='' if it['d'].startswith('Unique weapon') or k in WREQ else ' '+it['d']
+  it['d']='Before you can get it: '+txt+rest; it['q']=q
+EARLY_REQ={'schofield':FREE,'lancaster':WREQ['lancaster-repeater'][0],'pump-shotgun':WREQ['pump-action-shotgun'][0],'semi-shotgun':WREQ['semi-auto-shotgun'][0]}
+for it in CAT('early'):
+  k=it['id'].split('-',1)[1]
+  if k in EARLY_REQ: it['d']='Before you can get it: '+EARLY_REQ[k]+' '+it['d']
 print('gear: dropped (not on ShackMaps):',[o['n'] for o in old.values()])
 # gang item requests: show where each requester's items are
 for it in CAT('gang'):
