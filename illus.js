@@ -27,43 +27,43 @@
     // single-action "Cattleman/Schofield" style revolver
     revolver: k => `
       <path d="M96 45h84v8H96z" fill="#3b3128" ${S}/><path d="M100 53h58v4h-58z" fill="#4b4036" ${s}/><path d="M175 42h3v3h-3z" fill="${INK}"/>
-      <path d="M58 40h40v24H86q-6 0-8 4l-3 6H66l-4-6q-6-2-6-10z" fill="#3b3128" ${S}/>
+      <path d="M58 40h40v24H64q-6-2-6-10z" fill="#3b3128" ${S}/>
       <rect x="74" y="38" width="22" height="25" rx="3" fill="#4d4238" ${S}/><path d="M78 39v23M83 39v23M88 39v23M92 39v23" ${s}/>
       <path d="M60 41l-10-9q-3-2-1 2l6 9" fill="#3b3128" ${S}/>
       <path d="M62 60q-10 16-16 34q-1 7 6 8l12 1q6 0 7-6l9-32z" fill="${WOOD}" ${S}/><path d="M60 64q-8 14-12 30l12 2q5-14 10-30z" fill="url(#w${k})" opacity=".9"/>
-      <path d="M77 66q-3 14 9 13q6 0 7-8" fill="none" ${S}/><path d="M80 66l3 7" ${S}/>
+      <path d="M75 64q-3 15 9 15q11 0 11-15" fill="none" stroke="${INK}" stroke-width="2.2"/><path d="M84 64q3 5-1 10" fill="none" ${S}/>
       <path d="M96 45h84" stroke="#a89a8a" stroke-width=".6"/><circle cx="60" cy="98" r="1.2" fill="${BRASS}"/>`,
     // C96 "broomhandle" semi-automatic pistol
     pistol: k => `
       <path d="M92 44h86v7H92z" fill="#3b3128" ${S}/><path d="M52 40h46v18H52z" fill="#3b3128" ${S}/><path d="M56 40l2-6h18l2 6" fill="#3b3128" ${S}/>
       <path d="M78 58h16v26H78z" fill="#4b4036" ${S}/><path d="M80 62h12M80 67h12M80 72h12M80 77h12" ${s}/>
       <path d="M54 58q-4 18-12 30q-2 6 5 8l10 1q6-1 6-6l2-33z" fill="${WOOD}" ${S}/><path d="M50 62q-2 14-8 26l12 4q2-16 6-30z" fill="url(#x${k})" opacity=".6"/>
-      <path d="M64 58q-2 14 8 14q6 0 6-8" fill="none" ${S}/>`,
+      <path d="M62 58q-3 14 7 14q9 0 9-8" fill="none" stroke="${INK}" stroke-width="2.2"/><path d="M69 58q3 5-1 9" fill="none" ${S}/>`,
     // lever-action repeater / rifle
     lever: k => `
       <path d="M86 50h102v6H86z" fill="#3b3128" ${S}/><path d="M88 56h84v4H88z" fill="#4b4036" ${s}/><path d="M184 47h3v3h-3z" fill="${INK}"/>
       <path d="M60 46h30v16H60z" fill="${BRASS}" ${S}/><path d="M64 50h20" ${s}/>
       <path d="M100 56h40v5h-40z" fill="${WOOD}" ${s}/>
-      <path d="M62 62q-6 16 8 18q14 0 14-12" fill="none" ${S}/>
+      <path d="M64 62q-8 18 8 18q16 0 14-18" fill="none" stroke="${INK}" stroke-width="2.4"/><path d="M73 62q3 5-1 9" fill="none" ${S}/>
       <path d="M60 50L14 60q-6 2-6 8v8q0 4 6 3l18-3 30-14z" fill="${WOOD}" ${S}/><path d="M14 62l44-10v6L16 72z" fill="url(#w${k})"/><path d="M8 66v10" stroke="${INK}" stroke-width="3"/>`,
     // bolt-action / rolling block / sniper
     bolt: k => `
       <path d="M86 50h104v5H86z" fill="#3b3128" ${S}/><path d="M66 46h26v12H66z" fill="#3b3128" ${S}/>
       <path d="M78 46q2-10 10-12" fill="none" stroke="${INK}" stroke-width="2.4"/><circle cx="88" cy="34" r="3" fill="#3b3128" ${s}/>
-      <path d="M92 55h70l-6 6H92z" fill="${WOOD}" ${s}/><path d="M74 58q-2 10 6 10q4 0 4-6" fill="none" ${S}/>
+      <path d="M92 55h70l-6 6H92z" fill="${WOOD}" ${s}/><path d="M72 58q-2 12 7 12q9 0 9-12" fill="none" stroke="${INK}" stroke-width="2.2"/><path d="M79 58q3 4-1 8" fill="none" ${S}/>
       <path d="M66 50L18 58q-8 2-8 8v10q0 4 6 3l16-4 34-15z" fill="${WOOD}" ${S}/><path d="M18 62l46-8v4L20 70z" fill="url(#w${k})"/><path d="M10 64v12" stroke="${INK}" stroke-width="3"/>`,
     // side-by-side double-barrel shotgun
     double: k => `
       <path d="M84 46h104v5H84z" fill="#3b3128" ${S}/><path d="M84 51h104v5H84z" fill="#4b4036" ${S}/>
       <path d="M62 44h26v16H62z" fill="#8f8478" ${S}/><path d="M66 48q6 4 14 0M66 54q6 4 14 0" ${s}/>
       <path d="M66 44l-4-8 6 1 4 7" fill="#3b3128" ${s}/><path d="M74 44l-2-8 6 1 2 7" fill="#3b3128" ${s}/>
-      <path d="M96 56h46l-4 6H96z" fill="${WOOD}" ${s}/><path d="M68 60q-2 12 8 12q6 0 6-8" fill="none" ${S}/>
+      <path d="M96 56h46l-4 6H96z" fill="${WOOD}" ${s}/><path d="M66 60q-2 13 8 13q10 0 10-13" fill="none" stroke="${INK}" stroke-width="2.2"/><path d="M74 60q3 5-1 9" fill="none" ${S}/>
       <path d="M62 50L16 58q-8 2-8 8v10q0 4 6 3l18-4 30-15z" fill="${WOOD}" ${S}/><path d="M16 62l44-8v4L18 70z" fill="url(#w${k})"/>`,
     // pump / repeating / semi-auto shotgun
     pump: k => `
       <path d="M86 46h102v6H86z" fill="#3b3128" ${S}/><path d="M86 52h96v4H86z" fill="#4b4036" ${s}/>
       <rect x="112" y="52" width="34" height="9" rx="2" fill="${WOOD}" ${S}/><path d="M116 52v9M121 52v9M126 52v9M131 52v9M136 52v9M141 52v9" ${s}/>
-      <path d="M60 44h30v16H60z" fill="#3b3128" ${S}/><path d="M66 60q-2 12 8 12q6 0 6-8" fill="none" ${S}/>
+      <path d="M60 44h30v16H60z" fill="#3b3128" ${S}/><path d="M64 60q-2 13 8 13q10 0 10-13" fill="none" stroke="${INK}" stroke-width="2.2"/><path d="M72 60q3 5-1 9" fill="none" ${S}/>
       <path d="M60 48L14 58q-6 2-6 8v10q0 4 6 3l18-4 28-14z" fill="${WOOD}" ${S}/><path d="M14 62l44-10v4L16 70z" fill="url(#w${k})"/>`,
     knife: k => `
       <path d="M70 56l78-14q22-2 36 8q-14 2-30 10l-84 6z" fill="#cfc6b8" ${S}/><path d="M78 58l70-12" ${s}/><path d="M150 48q16-2 30 2" stroke="#fff" stroke-width=".8" opacity=".7"/>
