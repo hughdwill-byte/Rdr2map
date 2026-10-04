@@ -260,56 +260,7 @@
     </div>`;
   }
 
-  // ---- drawn illustrations for items without game art (sepia, RDR2 journal style) ----
-  const INK = '#2a1d12', PAPER = '#e8d6b0', PAPER2 = '#d4bc8c', GOLD = '#c9a13b';
-  const wrapText = (t, n) => { const w = String(t).split(/\s+/), out = []; let l = ''; for (const x of w) { if ((l + ' ' + x).trim().length > n && l) { out.push(l); l = x; } else l = (l + ' ' + x).trim(); } if (l) out.push(l); return out.slice(0, 3); };
-  const svgText = (lines, x, y, size, extra = '') => lines.map((l, i) => `<text x="${x}" y="${y + i * size * 1.15}" font-size="${size}" text-anchor="middle" font-family="Georgia,serif" fill="${INK}" ${extra}>${esc(l)}</text>`).join('');
-  const DRAW = {
-    revolver: `<rect x="98" y="47" width="74" height="9" rx="2" fill="${INK}"/><rect x="164" y="43" width="4" height="5" fill="${INK}"/><path d="M64 44h40v24H84l-6 6H70q-4 0-6-4z" fill="${INK}"/><circle cx="90" cy="56" r="11" fill="#4a3a2a" stroke="${INK}" stroke-width="3"/><path d="M66 60q-8 18-18 34q-2 6 4 8l12 2q6 0 8-6l8-30z" fill="#6b4a2b" stroke="${INK}" stroke-width="2"/><path d="M80 68q4 14 16 4" stroke="${INK}" stroke-width="3" fill="none"/><path d="M62 42l-6-6" stroke="${INK}" stroke-width="4"/>`,
-    rifle: `<path d="M18 58h112l8-4h44v8h-44l-10 4H96l-6 4H70l-30 16H20l22-16-24-2z" fill="${INK}"/><rect x="80" y="64" width="12" height="3" fill="${PAPER2}"/>`,
-    shotgun: `<path d="M16 54h120l6-3h40v12h-40l-8 3H94l-10 6H68l-30 16H18l22-16-24-4z" fill="${INK}"/><rect x="100" y="56" width="80" height="2" fill="${PAPER2}"/>`,
-    knife: `<path d="M40 64l70-14 50 6-50 8z" fill="#5a4a3a"/><rect x="18" y="60" width="26" height="9" rx="3" fill="${INK}"/>`,
-    hatchet: `<rect x="40" y="58" width="110" height="8" rx="3" fill="#5a3b20"/><path d="M128 40q20 18 0 44l-12-10v-24z" fill="${INK}"/>`,
-    bow: `<path d="M70 20q60 40 0 80" stroke="${INK}" stroke-width="6" fill="none"/><path d="M70 20v80" stroke="${INK}" stroke-width="1.5"/>`,
-    hat: `<ellipse cx="100" cy="78" rx="70" ry="12" fill="${INK}"/><path d="M62 78q-2-42 38-44q40 2 38 44z" fill="${INK}"/><rect x="64" y="66" width="72" height="6" fill="#6b4a2b"/>`,
-    mask: `<path d="M50 34q50-20 100 0q8 40-20 56q-30 14-60 0q-28-16-20-56z" fill="${INK}"/><ellipse cx="80" cy="56" rx="12" ry="8" fill="${PAPER}"/><ellipse cx="120" cy="56" rx="12" ry="8" fill="${PAPER}"/>`,
-    bone: `<path d="M50 50a10 10 0 1 1 10-14l80 0a10 10 0 1 1 10 14a10 10 0 1 1-10 14l-80 0a10 10 0 1 1-10-14z" fill="#efe3c8" stroke="${INK}" stroke-width="3"/>`,
-    dream: `<circle cx="100" cy="44" r="28" fill="none" stroke="#6b4a2b" stroke-width="5"/><path d="M100 16l20 46-46-26h52l-46 26z" stroke="${INK}" stroke-width="1.5" fill="none"/><path d="M80 72q-4 18 0 30M100 72q-2 20 0 34M120 72q4 18 0 30" stroke="${INK}" stroke-width="2"/><path d="M76 98l4 10 4-10zM96 102l4 10 4-10zM116 98l4 10 4-10z" fill="#8a3b2b"/>`,
-    carving: `<path d="M30 100q10-60 70-70q60 10 70 70z" fill="#a89a84" stroke="${INK}" stroke-width="2"/><g stroke="${INK}" stroke-width="3" fill="none"><circle cx="100" cy="52" r="7"/><path d="M100 59v22M88 66h24M100 81l-10 12M100 81l10 12"/><path d="M70 78q6-10 12 0M118 78q6-10 12 0"/></g>`,
-    grave: `<path d="M64 104V44q36-30 72 0v60z" fill="#9c9488" stroke="${INK}" stroke-width="3"/><path d="M100 50v30M88 60h24" stroke="${INK}" stroke-width="4"/><rect x="40" y="102" width="120" height="8" fill="#5a6b3a"/>`,
-    map: `<path d="M30 22l46 8 48-8 46 8v76l-46-8-48 8-46-8z" fill="${PAPER}" stroke="${INK}" stroke-width="2"/><path d="M50 84q30-40 60-20t40-30" stroke="#8a3b2b" stroke-width="3" stroke-dasharray="6 5" fill="none"/><path d="M142 26l12 12M154 26l-12 12" stroke="#8a1b1b" stroke-width="4"/>`,
-    goldbar: `<path d="M40 86l14-18h52l14 18z" fill="${GOLD}" stroke="${INK}" stroke-width="2"/><path d="M80 86l14-18h52l14 18z" fill="#dcb44a" stroke="${INK}" stroke-width="2"/><path d="M60 66l14-18h52l14 18z" fill="#e8c35a" stroke="${INK}" stroke-width="2"/>`,
-    chest: `<rect x="50" y="52" width="100" height="44" rx="4" fill="#6b4a2b" stroke="${INK}" stroke-width="3"/><path d="M50 52q50-34 100 0" fill="#7d5733" stroke="${INK}" stroke-width="3"/><rect x="94" y="62" width="12" height="16" fill="${GOLD}"/>`,
-    pamphlet: `<rect x="62" y="16" width="76" height="92" fill="${PAPER}" stroke="${INK}" stroke-width="2"/><rect x="70" y="26" width="60" height="22" fill="${PAPER2}"/><path d="M70 58h60M70 66h60M70 74h48M70 82h56M70 90h40" stroke="${INK}" stroke-width="2"/>`,
-    horse: `<path d="M70 104q-6-40 16-60q8-22 30-26l8-10 4 12q22 14 22 38l-14 6-12-8q-6 14 0 48z" fill="${INK}"/><circle cx="122" cy="34" r="2.5" fill="${PAPER}"/>`,
-    trinket: `<path d="M70 18q30 30 60 0" stroke="${INK}" stroke-width="3" fill="none"/><path d="M100 32l14 22-14 46-14-46z" fill="#efe3c8" stroke="${INK}" stroke-width="3"/>`,
-  };
-  function drawKind(it) {
-    const n = it.n.toLowerCase();
-    if (it.c === 'gear' || it.c === 'early') {
-      if (it.g === 'Hats') return 'hat'; if (it.g === 'Masks') return 'mask';
-      if (/hatchet|axe|cleaver/.test(n)) return 'hatchet'; if (/knife|machete/.test(n)) return 'knife'; if (/tomahawk/.test(n)) return 'hatchet';
-      if (/shotgun|scattergun/.test(n)) return 'shotgun'; if (/rifle|repeater|carbine|winchester|bolt/.test(n)) return 'rifle'; if (/bow\b/.test(n)) return 'bow';
-      return 'revolver';
-    }
-    return { dino: 'bone', dream: 'dream', carving: 'carving', grave: 'grave', treasure: 'map', pamph: 'pamphlet', horse: 'horse', trinket: 'trinket' }[it.c]
-      || (it.c === 'loot' ? (it.g === 'Gold Bars' ? 'goldbar' : 'chest') : null);
-  }
-  function illustration(it) {
-    const frame = (inner, caption) => `<svg viewBox="0 0 200 124" class="illus" role="img" aria-label="${esc(it.n)}"><defs><radialGradient id="pg" cx="50%" cy="45%" r="70%"><stop offset="0" stop-color="${PAPER}"/><stop offset="1" stop-color="${PAPER2}"/></radialGradient></defs><rect width="200" height="124" rx="6" fill="url(#pg)"/>${inner}${caption || ''}</svg>`;
-    if (it.c === 'card') {
-      const num = it.num ? `No. ${it.num}` : '';
-      return `<svg viewBox="0 0 200 124" class="illus" role="img" aria-label="${esc(it.n)}"><rect width="200" height="124" fill="#1d1712"/>
-        <g transform="rotate(-3 100 62)"><rect x="56" y="6" width="88" height="112" rx="4" fill="${PAPER}" stroke="#7a5a32" stroke-width="3"/>
-        <rect x="62" y="12" width="76" height="62" fill="#b9a27a"/><ellipse cx="100" cy="43" rx="30" ry="26" fill="#cdb48a" stroke="${INK}" stroke-width="1"/>
-        <image href="${iconOf(it)}" x="84" y="27" width="32" height="32" opacity=".6"/>
-        ${svgText(wrapText(it.n, 16), 100, 86, 8, 'font-weight="bold"')}
-        <text x="100" y="112" font-size="6.5" text-anchor="middle" font-family="Georgia,serif" fill="#6b4a2b">${esc((it.g || '').toUpperCase().slice(0, 30))} ${esc(num)}</text></g></svg>`;
-    }
-    const k = drawKind(it);
-    if (!k) return '';
-    return frame(DRAW[k]);
-  }
+  const illustration = it => RDR.illustration(it); // illus.js
   function popupHtml(it) {
     const c = CAT[it.c], isDone = done.has(it.id), to = it.tos ? it.tos[chIdx(it)] : it.to;
     const sub = [it.g, it.sub].filter(Boolean).map(esc).join(' &middot; ');
