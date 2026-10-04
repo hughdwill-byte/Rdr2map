@@ -168,6 +168,78 @@
     },
   };
 
+  // ---------- one drawing per weapon type (outlines get the pencil-sketch treatment) ----------
+  const STEEL = '#55504a', STEEL2 = '#8c867e', BONE = '#e6dcc4';
+  const guard = (x, y, w = 20) => `<path d="M${x} ${y}q-3 15 ${w * .45} 15q${w * .55} 0 ${w * .55}-15" fill="none" stroke="${INK}" stroke-width="2.2"/><path d="M${x + w * .45} ${y}q3 5-1 10" fill="none" ${s}/>`;
+  const stock = (x, y, k) => `<path d="M${x} ${y}L16 ${y + 8}q-8 2-8 9v10q0 4 6 3l18-4 ${x - 32} ${-16}z" fill="${WOOD}" ${S}/><path d="M16 ${y + 12}l${x - 18}-9v4L18 ${y + 20}z" fill="url(#w${k})"/><path d="M8 ${y + 14}v12" stroke="${INK}" stroke-width="3"/>`;
+  const axeHaft = `<path d="M18 74q66-6 128-10l1 7q-62 4-128 10z" fill="${WOOD}" ${S}/><path d="M24 76q60-6 118-9" stroke="${INK}" stroke-width=".5" opacity=".6"/>`;
+  const rust = (on) => on ? `<g fill="${RUST}" opacity=".75"><ellipse cx="146" cy="88" rx="4" ry="3"/><ellipse cx="140" cy="58" rx="3" ry="2"/><ellipse cx="152" cy="96" rx="2.5" ry="2"/></g>` : '';
+  const D0 = { ...D };
+  const W = {
+    cattleman: k => `<path d="M98 44h84v7H98z" fill="${STEEL}" ${S}/><path d="M100 51h48v4h-48z" fill="${STEEL2}" ${s}/><path d="M178 41h3v3h-3z" fill="${INK}"/>
+      <path d="M60 38h40v26H64q-6-2-6-10z" fill="${STEEL}" ${S}/><rect x="74" y="37" width="24" height="26" rx="4" fill="${STEEL2}" ${S}/><path d="M79 38v24M85 38v24M91 38v24" ${s}/><circle cx="101" cy="58" r="2" fill="${PAPER}" ${s}/>
+      <path d="M62 40q-6-8-14-10l2 4q6 2 8 9z" fill="${STEEL}" ${S}/>
+      <path d="M62 62q-6 6-11 18q-5 13-1 20q6 4 14 2q4-14 8-27l2-13z" fill="${WOOD}" ${S}/><path d="M56 70q-4 12-4 24" stroke="url(#w${k})" stroke-width="8"/>${guard(75, 64)}`,
+    schofield: k => `<path d="M98 43h86v8H98z" fill="${STEEL}" ${S}/><path d="M98 43h86" stroke="${STEEL2}" stroke-width="2"/><path d="M100 51h40v3h-40z" fill="${STEEL2}" ${s}/>
+      <path d="M60 38h40v26H64q-6-2-6-10z" fill="${STEEL}" ${S}/><rect x="76" y="39" width="20" height="23" rx="3" fill="${STEEL2}" ${S}/><path d="M81 40v21M86 40v21M91 40v21" ${s}/>
+      <path d="M96 38l6-6 4 4-4 6" fill="${STEEL}" ${S}/><circle cx="99" cy="62" r="2.4" fill="${STEEL2}" ${s}/>
+      <path d="M62 40q-6-7-13-9l2 4q6 2 7 8z" fill="${STEEL}" ${S}/>
+      <path d="M62 62q-6 6-11 18q-5 13-1 20q6 4 14 2q4-14 8-27l2-13z" fill="${WOOD}" ${S}/>${guard(75, 64)}`,
+    doubleaction: k => `<path d="M98 45h76v7H98z" fill="${STEEL}" ${S}/><path d="M170 42h3v3h-3z" fill="${INK}"/>
+      <path d="M60 40h40v24H66q-6-2-6-10z" fill="${STEEL}" ${S}/><rect x="74" y="38" width="24" height="25" rx="5" fill="${STEEL2}" ${S}/><path d="M80 39v23M86 39v23M92 39v23" ${s}/>
+      <path d="M64 40q-3-6-8-6l1 6z" fill="${STEEL}" ${S}/>
+      <path d="M64 62q-10 10-10 24q0 10 8 12q8 0 10-8q-6-12 2-26z" fill="#3a2a1e" ${S}/>${guard(76, 64, 24)}`,
+    volcanic: k => `<path d="M96 44h86v6H96z" fill="${STEEL}" ${S}/><path d="M96 50h80v5H96z" fill="${STEEL2}" ${S}/><path d="M176 50h4v5h-4z" fill="${BRASS}" ${s}/>
+      <path d="M62 40h36v18H62z" fill="${BRASS}" ${S}/><path d="M66 44h28" ${s}/>
+      <path d="M62 58q-6 10-8 22q-1 10 6 12q8 2 10-6l2-28z" fill="${WOOD}" ${S}/>
+      <path d="M70 58q-6 22 10 22q14 0 16-22" fill="none" stroke="${INK}" stroke-width="2.4"/><path d="M80 58q3 5-1 9" fill="none" ${s}/>`,
+    carbine: k => `<path d="M88 50h72v6H88z" fill="${STEEL}" ${S}/><path d="M90 56h56v4H90z" fill="${STEEL2}" ${s}/><path d="M96 56h30v6H96z" fill="${WOOD}" ${s}/>
+      <path d="M60 46h30v16H60z" fill="${STEEL}" ${S}/><circle cx="66" cy="54" r="4" fill="none" stroke="${BRASS}" stroke-width="1.6"/>
+      <path d="M64 62q-8 18 8 18q16 0 14-18" fill="none" stroke="${INK}" stroke-width="2.4"/><path d="M73 62q3 5-1 9" fill="none" ${s}/>${stock(60, 50, k)}`,
+    lancaster: k => `<path d="M86 50h104v6H86z" fill="${STEEL}" ${S}/><path d="M88 56h96v4H88z" fill="${STEEL2}" ${s}/><path d="M184 56h4v4h-4z" fill="${STEEL}" ${s}/>
+      <path d="M92 55h62l-4 8H92z" fill="${WOOD}" ${S}/><path d="M60 46h30v16H60z" fill="${BRASS}" ${S}/><path d="M64 51h20" ${s}/>
+      <path d="M64 62q-8 18 8 18q16 0 14-18" fill="none" stroke="${INK}" stroke-width="2.4"/><path d="M73 62q3 5-1 9" fill="none" ${s}/>${stock(60, 50, k)}`,
+    litchfield: k => `<path d="M86 49h104v8H86z" fill="${STEEL}" ${S}/><path d="M86 53h104" stroke="${STEEL2}" stroke-width="1.2"/><path d="M88 57h90v4H88z" fill="${STEEL2}" ${s}/>
+      <path d="M96 57h40v7H96z" fill="${WOOD}" ${S}/><path d="M58 45h32v18H58z" fill="${STEEL}" ${S}/><path d="M62 50h22M62 56h22" ${s}/>
+      <path d="M60 63q-12 24 10 24q22 0 18-24" fill="none" stroke="${INK}" stroke-width="2.6"/><path d="M72 63q3 5-1 9" fill="none" ${s}/>${stock(58, 51, k)}`,
+    rollingblock: k => `<path d="M88 50h104v5H88z" fill="${STEEL}" ${S}/><path d="M92 55h70l-6 6H92z" fill="${WOOD}" ${S}/>
+      <path d="M62 44h28v18H62z" fill="${STEEL2}" ${S}/><circle cx="82" cy="50" r="6" fill="${STEEL}" ${S}/><path d="M78 50h8" ${s}/>
+      <path d="M68 44q-4-12 4-16l2 4q-4 4-2 12" fill="${STEEL}" ${S}/>${guard(68, 62, 18)}${stock(62, 50, k)}`,
+    double: k => D0.double(k),
+    pump: k => D0.pump(k),
+    semiauto: k => `<path d="M90 46h98v5H90z" fill="${STEEL}" ${S}/><path d="M90 51h90v5H90z" fill="${STEEL2}" ${s}/><path d="M96 51h48v8H96z" fill="${WOOD}" ${S}/>
+      <path d="M58 62V46q0-10 12-10h22v26z" fill="${STEEL}" ${S}/><path d="M62 46h26" ${s}/>${guard(64, 62)}${stock(58, 52, k)}`,
+    hatchet: (k, it) => `${axeHaft}<path d="M138 44h14v10h-14z" fill="${STEEL}" ${S}/><path d="M136 54h18v18h-18z" fill="${STEEL2}" ${S}/>
+      <path d="M137 72l-7 24q15 10 32 0l-6-24z" fill="${STEEL2}" ${S}/><path d="M131 94q15 9 30 0" stroke="#efe8dc" stroke-width="1.4" fill="none"/>${rust(/rust/i.test(it.n))}`,
+    doublebit: (k, it) => `${axeHaft}<path d="M136 54h18v18h-18z" fill="${STEEL2}" ${S}/>
+      <path d="M137 54l-7-24q15-10 32 0l-6 24z" fill="${STEEL2}" ${S}/><path d="M137 72l-7 24q15 10 32 0l-6-24z" fill="${STEEL2}" ${S}/>
+      <path d="M131 32q15-9 30 0M131 94q15 9 30 0" stroke="#efe8dc" stroke-width="1.4" fill="none"/>${rust(/rust/i.test(it.n))}`,
+    hunterhatchet: (k, it) => `${axeHaft}<path d="M137 34h16v20h-16z" fill="${STEEL}" ${S}/><path d="M137 38h16" ${s}/><path d="M136 54h18v18h-18z" fill="${STEEL2}" ${S}/>
+      <path d="M137 72l-5 20q14 8 28 0l-4-20z" fill="${STEEL2}" ${S}/><path d="M133 90q13 7 26 0" stroke="#efe8dc" stroke-width="1.4" fill="none"/>${rust(/rust/i.test(it.n))}`,
+    hewing: (k, it) => `${axeHaft}<path d="M138 46h14v8h-14z" fill="${STEEL}" ${S}/><path d="M136 54h18v18h-18z" fill="${STEEL2}" ${S}/>
+      <path d="M137 72l-22 32q24 10 46-4l-5-28z" fill="${STEEL2}" ${S}/><path d="M117 103q22 8 43-4" stroke="#efe8dc" stroke-width="1.4" fill="none"/>`,
+    viking: (k, it) => `<path d="M18 74q66-6 128-10l1 7q-62 4-128 10z" fill="${WOOD}" ${S}/><path d="M40 72l4 8M52 71l4 8M64 70l4 8" stroke="${INK}" stroke-width="1"/>
+      <path d="M138 46h14v8h-14z" fill="${STEEL}" ${S}/><path d="M136 54h18v18h-18z" fill="${STEEL2}" ${S}/>
+      <path d="M137 72q-6 10-18 14q-6 8 0 18q20 6 42-6l-5-26z" fill="${STEEL2}" ${S}/><path d="M121 102q20 5 39-5" stroke="#efe8dc" stroke-width="1.4" fill="none"/>`,
+    cleaver: k => D0.cleaver(k),
+    tomahawk: k => `<path d="M24 70l118-8 1 6-118 9z" fill="${WOOD}" ${S}/>
+      <path d="M134 44q14-6 22 6q6 14-2 30q-10 8-20-4q-8-16 0-32z" fill="#8c8478" ${S}/><path d="M138 52q8-4 12 4M140 66q8 2 12-4" ${s}/>
+      <path d="M128 58l20 10M128 66l20-8M130 62h18" stroke="${RUST}" stroke-width="1.6"/>
+      <path d="M118 68q-2 14 4 24M112 68q-6 14-2 26" stroke="${INK}" stroke-width=".9" fill="none"/>
+      <path d="M122 92q-4 8 0 16q4-8 0-16zM110 94q-4 8 0 16q4-8 0-16z" fill="${BONE}" ${s}/>`,
+    wideknife: k => `<path d="M70 52l92-6q14 0 22 10q-10 8-24 8l-90 4z" fill="#cfc6b8" ${S}/><path d="M76 58l84-6" ${s}/>
+      <path d="M64 46h8v26h-8z" fill="${BRASS}" ${S}/><path d="M22 54h42v12H22q-6 0-6-6t6-6z" fill="#3a2a1e" ${S}/><circle cx="34" cy="60" r="1.6" fill="${BRASS}"/><circle cx="50" cy="60" r="1.6" fill="${BRASS}"/>`,
+    bowie: k => `<path d="M70 56l80-12q20-2 34 6q-12 0-20 4q-12 6-24 8l-70 6z" fill="#cfc6b8" ${S}/><path d="M78 58l70-11" ${s}/>
+      <path d="M64 44h7v30h-7z" fill="${BRASS}" ${S}/><path d="M64 44q-14-2-16 6M64 74q-14 2-16-6" fill="none" stroke="${BRASS}" stroke-width="2"/>
+      <path d="M22 54h42v12H22q-6 0-6-6t6-6z" fill="${WOOD}" ${S}/><path d="M24 57h38v6H24z" fill="url(#w${k})"/>`,
+    antlerknife: k => `<path d="M72 56l78-12q22-2 34 8q-14 2-30 10l-82 6z" fill="#cfc6b8" ${S}/><path d="M80 58l70-12" ${s}/><path d="M64 48h8v22h-8z" fill="${STEEL}" ${S}/>
+      <path d="M18 56q20-4 46-2v12q-26 2-46-2q-6-4 0-8z" fill="${BONE}" ${S}/><path d="M28 56q2-6 6-8M44 66q2 6 6 8M26 66l-2 4" ${s}/><circle cx="34" cy="60" r="1.2" fill="${INK}"/><circle cx="48" cy="61" r="1.2" fill="${INK}"/>`,
+    cutlass: k => `<path d="M58 60q50-14 110-2l-6 4 4 3-6 2 3 4q-50-8-105-3z" fill="#cfc6b8" ${S}/><path d="M66 62q46-10 96-2" ${s}/>
+      <path d="M58 52q-14-10-30 0q-8 8-2 18l4-2q-4-8 2-12q10-6 22 2z" fill="${BRASS}" ${S}/><path d="M22 56h36v8H22z" fill="#3a2a1e" ${S}/><circle cx="20" cy="60" r="4" fill="${BRASS}" ${s}/>
+      <path d="M58 48v24" stroke="${BRASS}" stroke-width="4"/><path d="M110 56l4 8M138 55l-3 8" stroke="${RUST}" stroke-width="1.2" opacity=".7"/>`,
+  };
+  Object.assign(D, W);
+
   // cigarette card: 1890s chromolithograph with ornate border, tinted vignette chosen by set, caption and number
   const CARD_SCENE = {
     'Amazing Inventions': k => `<circle cx="100" cy="46" r="15" fill="#8f8478" ${S}/><circle cx="100" cy="46" r="5" fill="${PAPER}" ${s}/>${[...Array(10)].map((_, i) => `<rect x="98" y="27" width="4" height="6" fill="#8f8478" ${s} transform="rotate(${i * 36} 100 46)"/>`).join('')}`,
@@ -216,11 +288,15 @@
       if (it.g === 'Hats') return /sombrero/.test(n) ? 'sombrero' : /top hat/.test(n) ? 'tophat' : /derby|bowler/.test(n) ? 'bowler' : /morion/.test(n) ? 'morion'
         : /viking/.test(n) ? 'helmet' : /racoon|raccoon|fur/.test(n) ? 'furcap' : /skull cap/.test(n) ? 'skullcap' : /miner/.test(n) ? 'miner' : /tricorn/.test(n) ? 'tricorn'
         : /mountie/.test(n) ? 'campaign' : /exotic/.test(n) ? 'feathered' : /officer|military/.test(n) ? 'cap' : 'stetson';
-      if (/sword|sabre|saber|cutlass/.test(n)) return 'sword'; if (/cleaver/.test(n)) return 'cleaver'; if (/tomahawk/.test(n)) return 'tomahawk'; if (/hatchet|axe/.test(n)) return 'hatchet'; if (/knife|machete/.test(n)) return 'knife'; if (/\bbow\b/.test(n)) return 'bow';
-      if (/pump|repeating shotgun|semi-auto shotgun|semi-automatic shotgun/.test(n)) return 'pump'; if (/shotgun|sawed|sawn/.test(n)) return 'double';
-      if (/bolt|rolling block|carcano|springfield|sniper/.test(n)) return 'bolt'; if (/rifle|repeater|carbine|winchester|lancaster|litchfield|evans|henry/.test(n)) return 'lever';
-      if (/mauser|semi-auto|semi-automatic|volcanic|m1899|pistol/.test(n)) return 'pistol';
-      return 'revolver';
+      if (/sword|sabre|saber|cutlass/.test(n)) return 'cutlass'; if (/cleaver/.test(n)) return 'cleaver'; if (/tomahawk/.test(n)) return 'tomahawk';
+      if (/double bit/.test(n)) return 'doublebit'; if (/viking/.test(n)) return 'viking'; if (/hewing/.test(n)) return 'hewing'; if (/hunter hatchet/.test(n)) return 'hunterhatchet'; if (/hatchet|axe/.test(n)) return 'hatchet';
+      if (/antler knife/.test(n)) return 'antlerknife'; if (/wide.blade/.test(n)) return 'wideknife'; if (/knife|machete/.test(n)) return 'bowie'; if (/\bbow\b/.test(n)) return 'bow';
+      if (/semi.?auto(matic)? shotgun/.test(n)) return 'semiauto'; if (/pump|repeating shotgun/.test(n)) return 'pump'; if (/shotgun|sawed|sawn/.test(n)) return 'double';
+      if (/rolling block/.test(n)) return 'rollingblock'; if (/bolt|carcano|springfield|sniper/.test(n)) return 'bolt';
+      if (/carbine/.test(n)) return 'carbine'; if (/litchfield|evans/.test(n)) return 'litchfield'; if (/lancaster|repeater|rifle|winchester|henry/.test(n)) return 'lancaster';
+      if (/midnight|volcanic/.test(n)) return 'volcanic'; if (/mauser|semi-auto|semi-automatic|m1899/.test(n)) return 'pistol';
+      if (/schofield|flaco/.test(n)) return 'schofield'; if (/double.action|micah/.test(n)) return 'doubleaction';
+      return 'cattleman';
     }
     return { dino: 'bone', dream: 'dream', carving: 'carving', grave: 'grave', treasure: 'map', pamph: 'pamphlet', horse: 'horse', trinket: 'trinket' }[it.c]
       || (it.c === 'loot' ? (it.g === 'Gold Bars' ? 'goldbar' : 'chest') : null);
