@@ -10,16 +10,29 @@
   // shared defs: ink wobble, paper grain, hatching (ids are unique per drawing so several popups can coexist)
   const defs = k => `<defs>
     <filter id="ink${k}" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="7"/><feDisplacementMap in="SourceGraphic" scale="1.6"/></filter>
+    <filter id="ink2${k}" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="2" seed="23"/><feDisplacementMap in="SourceGraphic" scale="2.4"/></filter>
+    <pattern id="g${k}" width="2.6" height="2.6" patternUnits="userSpaceOnUse" patternTransform="rotate(38)"><line x1="0" y1="0" x2="0" y2="2.6" stroke="#3a2c20" stroke-width=".45"/></pattern>
     <filter id="grain${k}"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" seed="2" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.25  0 0 0 0 0.12  0 0 0 0.22 0"/><feComposite in2="SourceGraphic" operator="in"/></filter>
-    <radialGradient id="pg${k}" cx="50%" cy="42%" r="75%"><stop offset="0" stop-color="${PAPER}"/><stop offset=".75" stop-color="#dcc497"/><stop offset="1" stop-color="${PAPER2}"/></radialGradient>
+    <radialGradient id="pg${k}" cx="50%" cy="42%" r="75%"><stop offset="0" stop-color="#f1e6cc"/><stop offset=".8" stop-color="#e6d6b2"/><stop offset="1" stop-color="#d6c094"/></radialGradient>
     <pattern id="h${k}" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="3.2" stroke="${INK}" stroke-width=".7"/></pattern>
     <pattern id="x${k}" width="3.2" height="3.2" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><path d="M0 0V3.2M0 0H3.2" stroke="${INK}" stroke-width=".6"/></pattern>
     <pattern id="w${k}" width="6" height="2.4" patternUnits="userSpaceOnUse" patternTransform="rotate(-8)"><path d="M0 1.2q1.5-.9 3 0t3 0" stroke="#3a2412" stroke-width=".5" fill="none"/></pattern>
   </defs>`;
+  const sketch = (k, inner) => `<style>
+      .sw${k} *{stroke:none!important}
+      .sh${k} *{fill:url(#g${k})!important;stroke:none!important}
+      .sl${k} *{fill:none!important;stroke:#2e2219!important;stroke-width:.85px!important}
+      .sl${k} text,.sw${k} text,.sh${k} text{display:none}
+      .st${k} *:not(text){display:none}
+    </style>
+    <g class="sw${k}" opacity=".32">${inner}</g>
+    <g class="sh${k}" opacity=".55" filter="url(#ink2${k})">${inner}</g>
+    <g class="sl${k}" filter="url(#ink${k})" opacity=".9">${inner}</g>
+    <g class="sl${k}" filter="url(#ink2${k})" opacity=".45" transform="translate(.7 .5)">${inner}</g>
+    <g class="st${k}">${inner}</g>`;
   const paper = (k, inner, w = 200, h = 124) => `<svg viewBox="0 0 ${w} ${h}" class="illus" role="img">${defs(k)}
     <rect width="${w}" height="${h}" fill="url(#pg${k})"/><rect width="${w}" height="${h}" fill="#000" filter="url(#grain${k})" opacity=".9"/>
-    <rect x="4" y="4" width="${w - 8}" height="${h - 8}" fill="none" stroke="${SEPIA}" stroke-width=".6" opacity=".55"/>
-    <g filter="url(#ink${k})" stroke-linejoin="round" stroke-linecap="round">${inner}</g></svg>`;
+    <g stroke-linejoin="round" stroke-linecap="round">${sketch(k, inner)}</g></svg>`;
   const S = `stroke="${INK}" stroke-width="1.6"`, s = `stroke="${INK}" stroke-width=".9"`;
 
   // ---------- subjects (drawn in a 200x124 box) ----------
@@ -190,7 +203,7 @@
       <rect x="58" y="8" width="84" height="108" fill="none" stroke="${RUST}" stroke-width=".8"/><rect x="60" y="10" width="80" height="104" fill="none" stroke="${RUST}" stroke-width=".4"/>
       <rect x="64" y="16" width="72" height="64" fill="#d9c79e" stroke="${SEPIA}" stroke-width=".8"/><rect x="64" y="16" width="72" height="64" fill="url(#h${k})" opacity=".12"/>
       <clipPath id="cv${k}"><rect x="64" y="16" width="72" height="64"/></clipPath>
-      <g clip-path="url(#cv${k})"><g filter="url(#ink${k})" stroke-linejoin="round" transform="translate(100 48) scale(.85) translate(-100 -48)">${scene}</g></g>
+      <g clip-path="url(#cv${k})"><g stroke-linejoin="round" transform="translate(100 48) scale(.85) translate(-100 -48)">${sketch(k, scene)}</g></g>
       ${text(wrap(it.n, 17, 2), 100, 89, 7.2, 'font-weight="bold"')}
       <path d="M72 102h56" stroke="${RUST}" stroke-width=".5"/>${text([(SET_SHORT[it.g] || it.g || '').toUpperCase()], 100, 108, 4.4, `fill="${SEPIA}" letter-spacing=".6"`)}
       ${it.num ? `<text x="134" y="24" font-size="5" text-anchor="end" font-family="Georgia,serif" fill="${SEPIA}">No. ${it.num}</text>` : ''}</g></svg>`;
