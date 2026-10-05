@@ -31,6 +31,7 @@
   let layersOn = load('rdr2map.layersOn', true);
   const DEFAULT_HIDDEN = ['exotic', 'poi', 'stranger', 'crime', 'event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service'];
   const hiddenCats = new Set(load('rdr2map.hiddenCats', DEFAULT_HIDDEN));
+  const plants = new Set(load('rdr2map.plants', [])); // herbs work like Wildlife: only the plants you pick go on the map
   { // categories added since this browser last visited start hidden if they're busy layers
     const known = new Set(load('rdr2map.knownCats', D.cats.map(c => c.id)));
     for (const c of D.cats) if (!known.has(c.id) && DEFAULT_HIDDEN.includes(c.id)) hiddenCats.add(c.id);
@@ -325,7 +326,7 @@
   const shownHere = (it, x) => (!region || x.r === region) && (!it.lch || x.i === chIdx(it));
   function refreshMarkers() {
     for (const it of D.items) {
-      const visibleItem = !hiddenCats.has(it.c) && (layersOn || !NONCOL.includes(it.c)) && (showDone || !done.has(it.id)) && matches(it) && unlocked(it);
+      const visibleItem = !hiddenCats.has(it.c) && (layersOn || !NONCOL.includes(it.c)) && (showDone || !done.has(it.id)) && matches(it) && unlocked(it) && (it.c !== 'herb' || plants.has(it.g));
       for (const x of markers[it.id]) {
         const m = x.m, show = visibleItem && shownHere(it, x);
         if (show && !map.hasLayer(m)) m.addTo(map);
@@ -487,7 +488,10 @@
         if (catNeeds.length) {
           body = `<div class="cat-lock"><div class="lock-h">🔒 Locked — do these first:</div><ul class="chips">${catNeeds.map(chip).join('')}</ul></div>`;
         } else if (open) {
-          if (GROUPED.has(c.id)) {
+          if (c.id === 'herb') {
+            body = `<p class="note pad">Pick the plants you're looking for. Only those go on the map.</p><div class="plant-pick">${[...new Set(its.map(i => i.g))].sort().map(g => `<button class="plant ${plants.has(g) ? 'on' : ''}" data-plant="${esc(g)}" aria-pressed="${plants.has(g)}">${esc(g)} <small>${its.filter(i => i.g === g).length}</small></button>`).join('')}</div>`
+              + (plants.size ? `<button class="link plant-clear" data-plant="">Clear all</button>` : '');
+          } else if (GROUPED.has(c.id)) {
             for (const g of [...new Set(its.map(i => i.g))]) {
               const gi = its.filter(i => i.g === g), allG = all.filter(i => i.g === g);
               const [gd, gt] = progress(allG);
@@ -801,6 +805,13 @@
     }
     const cm = e.target.closest('[data-chmap]');
     if (cm) return showChal(cm.dataset.chmap);
+    const pl = e.target.closest('[data-plant]');
+    if (pl) {
+      const id = pl.dataset.plant;
+      if (!id) plants.clear(); else if (plants.has(id)) plants.delete(id);
+      else { plants.add(id); save('rdr2map.plants', [...plants]); return goTo(D.items.filter(i => i.c === 'herb' && i.g === id)); }
+      save('rdr2map.plants', [...plants]); return refresh();
+    }
     const t = e.target.closest('[data-open],[data-eye],[data-loc],[data-region],[data-story],[data-start],[data-gostory],[data-ch],[data-camp]');
     if (!t) return;
     const ds = t.dataset;
@@ -833,19 +844,23 @@
       save('rdr2map.openChs', [...openChs]); renderList();
     } else if (ds.camp) {
       flyToPoint(CH[+ds.camp - 1].camp, null);
-    } else if (ds.loc) {
-      const it = ITEM[ds.loc];
-      hiddenCats.delete(it.c);
-      const ms = markers[it.id].filter(x => shownHere(it, x)).map(x => x.m);
-      if (done.has(it.id) && !showDone) { showDone = true; $('show-done').checked = true; save('rdr2map.showDone', true); }
-      refresh();
-      if (ms.length === 1) flyToPoint(ms[0].getLatLng(), ms[0]);
-      else if (ms.length) {
-        if (mobileMQ.matches) setSheet('peek');
-        map.flyToBounds(L.latLngBounds(ms.map(m => m.getLatLng())), { ...sheetPad(), maxZoom: 6, duration: 0.8 });
-      }
-    }
+    } else if (ds.loc) goTo(ITEM[ds.loc]);
   });
+  function goTo(its) {
+    if (!Array.isArray(its)) its = [its];
+    const it = its[0];
+    hiddenCats.delete(it.c); save('rdr2map.hiddenCats', [...hiddenCats]);
+    if (NONCOL.includes(it.c) && !layersOn) { layersOn = true; save('rdr2map.layersOn', true); renderLayers(); }
+    if (it.c === 'herb') { plants.add(it.g); save('rdr2map.plants', [...plants]); }
+    const ms = its.flatMap(it => markers[it.id].filter(x => shownHere(it, x)).map(x => x.m));
+    if (done.has(it.id) && !showDone) { showDone = true; $('show-done').checked = true; save('rdr2map.showDone', true); }
+    refresh();
+    if (ms.length === 1) flyToPoint(ms[0].getLatLng(), ms[0]);
+    else if (ms.length) {
+      if (mobileMQ.matches) setSheet('peek');
+      map.flyToBounds(L.latLngBounds(ms.map(m => m.getLatLng())), { ...sheetPad(), maxZoom: 6, duration: 0.8 });
+    }
+  }
   $('list').addEventListener('change', e => {
     const ds = e.target.dataset;
     if (ds.id) toggle(ds.id, e.target.checked);
