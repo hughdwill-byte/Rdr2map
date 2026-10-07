@@ -147,17 +147,17 @@ RDR.story = {
   // People to meet / things to pick up before a collection opens. Shown as pins until ticked.
   // approx: 1 = no game-data position exists; pinned from the guides' directions only.
   starts: [
-    { id: 'start-deborah', ch: 2, who: 'Deborah MacGuinness', mission: 'A Test of Faith', unlocks: 'dino', l: [-89.0, 148.5], approx: 1,
+    { id: 'start-deborah', ch: 2, who: 'Deborah MacGuinness', mission: 'A Test of Faith', unlocks: 'dino', l: [-89.32, 151.75],
       d: 'Elderly woman crouched in a crater in The Heartlands, northeast of Flatneck Station. Mail bone locations to her from any post office.' },
-    { id: 'start-sinclair', ch: 3, who: 'Francis Sinclair', mission: 'Geology for Beginners', unlocks: 'carving', l: [-91.5, 106.5], approx: 1,
+    { id: 'start-sinclair', ch: 3, who: 'Francis Sinclair', mission: 'Geology for Beginners', unlocks: 'carving', l: [-90.46, 103.78],
       d: 'Sitting outside his cabin northwest of Strawberry (north of the "S" in Strawberry). Available once Chapter 2 is complete.' },
-    { id: 'start-gill', ch: 3, who: 'Jeremy Gill', mission: 'A Fisher of Fish', unlocks: 'fish', l: [-98.67, 155.87],
+    { id: 'start-gill', ch: 3, who: 'Jeremy Gill', mission: 'A Fisher of Fish', unlocks: 'fish', l: [-99.7, 156.16],
       d: 'His fishing shack on the northeast bank of Flat Iron Lake (the "Rare Fish Shack" in the game files). Buy special lures at the Lagras bait shop.' },
     { id: 'start-hunt', ch: 2, who: 'Hunting Request letter', mission: 'Hunting Requests', unlocks: 'hunt', l: [-72.32, 145.46],
       d: 'Pick up the first Hunting Request at a post office or train station: Valentine post office shown (also Strawberry, Rhodes, Saint Denis, Van Horn). Mail carcasses to Mrs. Hobbs.' },
-    { id: 'start-wasp', ch: 4, who: 'Algernon Wasp', mission: 'Duchesses and Other Animals', unlocks: 'exotic', l: [-104.5, 204.5], approx: 1, after: 'the-gilded-cage',
+    { id: 'start-wasp', ch: 4, who: 'Algernon Wasp', mission: 'Duchesses and Other Animals', unlocks: 'exotic', l: [-106.48, 202.9], after: 'the-gilded-cage',
       d: 'In the iron greenhouse behind the big blue house in north Saint Denis. Appears after "The Gilded Cage".' },
-    { id: 'start-charlotte', ch: 6, who: 'Charlotte Balfour', mission: "The Widow of Willard's Rest", unlocks: 'loot', l: [-39.39, 210.29],
+    { id: 'start-charlotte', ch: 6, who: 'Charlotte Balfour', mission: "The Widow of Willard's Rest", unlocks: 'loot', l: [-38.83, 210.79],
       d: "Willard's Rest, far northeast Roanoke Ridge. Help her and she leaves you a box of money (Willard's Rest stash)." },
   ],
 

@@ -7,6 +7,7 @@ lab=np.load('labels.npy'); S=4; H,W=lab.shape
 meta=json.load(open('regions_meta.json')); rids=list(meta)
 def P(lat,lng): return [round(float(lat),3),round(float(lng),3)]
 def tp(x,y): return P(*(np.array([x,y,1])@Mp))
+from warp import fix  # thin-plate correction; patreiCH72's affine is off by up to ~6 units near the edges
 def tr(x,y): return P(*(np.array([x,y,1])@Mr))
 def region(lat,lng):
   y,x=int(-lat*S),int(lng*S)
@@ -259,7 +260,7 @@ for p in pat:
   d=clean(p.get('description')) or 'Walk up to it to add it to your journal.'
   if n=='Painting in Cabin': n='Changing painting'; d='A painter\'s cabin: the canvas on the easel changes every time you come back. '+d
   if n=='Mysterious Hill Home': d='A cult cabin with a note inside. Leave, come back at 2am and wait inside: a UFO appears overhead.'
-  add('poi',re.sub(r'\W+','-',n.lower()).strip('-'),n,[tp(p['x'],p['y'])],d,grp=g,**({'q':POI_Q[n]} if n in POI_Q else {}))
+  add('poi',re.sub(r'\W+','-',n.lower()).strip('-'),n,[fix('pat',tp(p['x'],p['y']))],d,grp=g,**({'q':POI_Q[n]} if n in POI_Q else {}))
 SECRETS=[('ufo-shann','UFO over Mount Shann',[P(-83.68,104.83)],'Climb Mount Shann and wait at 1am: a UFO hovers beyond the rocks. Pin approx.',[]),
  ('vampire','Vampire of Saint Denis',[P(-110.2,205.6)],'Find the five vampire scrawls on walls around Saint Denis; the last points to a dark alley near the church. Go there at night to meet the vampire. Pin approx.',['ch4']),
  ('agnes','Ghost of Agnes Dowd',[P(-90.5,201.5)],'Bluewater Marsh, only between 9pm and 3am. Listen for wailing and use binoculars: she vanishes if you get close. Pin approx.',['ch3']),
@@ -315,7 +316,7 @@ add('trinket','owl','Owl Feather Trinket',[],'Effect: Health, Stamina and Dead E
 add('trinket','iguana','Iguana Scale Trinket',[],'Effect: 10% less damage while on horseback. Special/Ultimate Edition bonus.',grp='Trinkets: found in the world',q=['ch2'])
 # Hunting requests: pin each animal at its densest spawn cluster (RDOMap spawn points) and name the post office to mail it from.
 POST={'Valentine':(-72.32,145.46),'Strawberry':(-93.46,112.47),'Rhodes':(-112.45,174.66),'Saint Denis':(-114.6,206.31),'Van Horn':(-73.53,211.27),
-      'Annesburg':(-58.57,210.3),'Emerald Station':(-76.22,180.82),'Wallace Station':(-77.06,122.13),'Riggs Station':(-97.44,126.43),'Blackwater':(-113.12,130.95),'Armadillo':(-139.64,71.51),'Tumbleweed':(-157.81,40.42)}
+      'Annesburg':(-58.57,210.3),'Emerald Station':(-76.22,180.82),'Wallace Station':(-77.06,122.13),'Riggs Station':(-97.44,126.43),'Blackwater':(-113.12,130.95),'Armadillo':(-139.64,71.51),'Benedict Point':(-157.91,40.48)}
 HUNT_WILD={'squirrel':'animal_squirrel_grey','rabbit':'animal_rabbit','cardinal':'animal_cardinal','rat':'animal_rat_black','woodpecker':'animal_woodpecker_redbellied',
   'chipmunk':'animal_chipmunk','oriole':'animal_oriole_baltimore','robin':'animal_robin','opossum':'animal_possum','sparrow':'animal_sparrow_eurasian',
   'songbird':'animal_songbird_scarlet','toad':'animal_toad','bullfrog':'animal_frogbull','skunk':'animal_skunk','waxwing':'animal_cedarwaxwing',
@@ -470,6 +471,8 @@ for it in CAT('gear'):
 EARLY_REQ={'schofield':FREE,'lancaster':WREQ['lancaster-repeater'][0],'pump-shotgun':WREQ['pump-action-shotgun'][0],'semi-shotgun':WREQ['semi-auto-shotgun'][0]}
 for it in CAT('early'):
   k=it['id'].split('-',1)[1]
+  g={'lancaster':'gear-lancaster-repeater','pump-shotgun':'gear-pump-action-shotgun','semi-shotgun':'gear-semi-auto-shotgun'}.get(k)
+  if g: it['l']=next(i['l'] for i in items if i['id']==g)  # same pickup as the ShackMaps weapon pin
   if k in EARLY_REQ: it['d']='Before you can get it: '+EARLY_REQ[k]+' '+it['d']
 print('gear: dropped (not on ShackMaps):',[o['n'] for o in old.values()])
 # gang item requests: show where each requester's items are
