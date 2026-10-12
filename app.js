@@ -818,7 +818,10 @@
       openCats.add('satchel'); save('rdr2map.openCats', [...openCats]);
       setTab('items');
       if (mobileMQ.matches) setSheet('full');
-      return document.querySelector('[data-open="satchel"]')?.scrollIntoView({ block: 'start' });
+      // scroll only the list: scrollIntoView also scrolls the sheet and page on iOS, leaving a blank gap
+      const el = document.querySelector('[data-open="satchel"]'), list = $('list');
+      if (el) list.scrollTop += el.getBoundingClientRect().top - list.getBoundingClientRect().top;
+      return;
     }
     const cm = e.target.closest('[data-chmap]');
     if (cm) return showChal(cm.dataset.chmap);

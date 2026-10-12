@@ -60,7 +60,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--gold); outl
 .switch { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); white-space: nowrap; cursor: pointer; }
 .switch input { accent-color: var(--red); }
 
-.scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 12px calc(24px + env(safe-area-inset-bottom)); scrollbar-width: thin; scrollbar-color: #4a3d31 transparent; }
+.scroll { flex: 1; min-height: 0; position: relative; /* contains the visually-hidden checkboxes, so #side never scrolls */ overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 4px 12px calc(24px + env(safe-area-inset-bottom)); scrollbar-width: thin; scrollbar-color: #4a3d31 transparent; }
 .grp { font: 13px 'IM Fell English SC', Georgia, serif; letter-spacing: 2px; color: var(--muted); margin: 18px 8px 8px; text-transform: uppercase; }
 
 .cat { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 8px; overflow: hidden; }
