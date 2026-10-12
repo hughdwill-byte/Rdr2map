@@ -362,3 +362,5 @@ body[data-tab="wild"] .tools .switch { display: none; }
 .plant.on { background: var(--c); border-color: var(--c); color: #fff; }
 .plant.on small { color: inherit; opacity: .8; }
 .plant-clear { margin: 0 12px 10px; }
+.satchel-link { display: flex; width: calc(100% - 16px); margin: 10px 8px 0; padding: 0 12px; align-items: center; justify-content: space-between; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.satchel-link small { color: var(--muted); font-weight: 400; }

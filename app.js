@@ -707,6 +707,8 @@
     const q = query;
     let html = `<div class="wild-intro">Switch an animal on to see the area where it spawns, outlined on the map, plus when it appears.
       Areas are drawn around every spawn point in the game's data${wildOn.size ? ` · <button class="link" data-wildclear="1">hide all (${wildOn.size})</button>` : ''}</div>`;
+    const [sd, st] = progress(D.items.filter(i => i.c === 'satchel'));
+    if (!q) html += `<button class="pill satchel-link" data-gosatchel="1">🎒 Legend of the East Satchel checklist <small>${sd}/${st}</small></button>`;
     for (const g of ['Legendary animals', 'Legendary fish', 'Animals', 'Birds', 'Fish', 'Wild horses']) {
       const list = wildIndex.filter(s => s.g === g && (!q || s.n.toLowerCase().includes(q)));
       if (!list.length) continue;
@@ -804,6 +806,13 @@
       const it = ITEM[v.dataset.view];
       if (!it.l.length) return showDetail(it);
       return v.parentElement.querySelector('[data-loc]').click();
+    }
+    if (e.target.closest('[data-gosatchel]')) { // jump to the satchel checklist in Collectibles
+      if (region) selectRegion(null);
+      openCats.add('satchel'); save('rdr2map.openCats', [...openCats]);
+      setTab('items');
+      if (mobileMQ.matches) setSheet('full');
+      return document.querySelector('[data-open="satchel"]')?.scrollIntoView({ block: 'start' });
     }
     const cm = e.target.closest('[data-chmap]');
     if (cm) return showChal(cm.dataset.chmap);
