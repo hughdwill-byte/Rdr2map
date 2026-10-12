@@ -9,13 +9,13 @@
   for (const ch of CH) for (const [id, n, opt] of ch.missions) MISSION[id] = { id, n, opt: !!opt, ch: ch.n };
   const START = Object.fromEntries(S.starts.map(s => [s.id, s]));
   const GROUPS = { main: 'Main collectibles', hunt: 'Hunting & wildlife', side: 'Side missions & unique items', money: 'Money & valuables', explore: 'Exploring & secrets', world: 'World: places, pickups & services' };
-  const GROUPED = new Set(['card', 'treasure', 'hunt', 'exotic', 'gear', 'loot', 'pamph', 'trinket', 'poi', 'secret', 'early', 'horse', 'stranger', 'crime', 'event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service']);
+  const GROUPED = new Set(['satchel', 'card', 'treasure', 'hunt', 'exotic', 'gear', 'loot', 'pamph', 'trinket', 'poi', 'secret', 'early', 'horse', 'stranger', 'crime', 'event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service']);
   // reference layers: shown on the map but not counted towards 100%
-  const REF = new Set(['event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service']);
+  const REF = new Set(['satchel', 'event', 'shack', 'pickup', 'game', 'herb', 'fishspot', 'service']);
   const ICON = {
     dino: 'icons/dino.png', carving: 'icons/carving.png', dream: 'icons/dream.png', card: 'icons/card.svg',
     treasure: 'icons/treasure.png', grave: 'icons/grave.png', animal: 'icons/animal.png', fish: 'icons/fish.png',
-    hunt: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg', pamph: 'icons/pamphlet.svg', trinket: 'icons/trinket.svg', poi: 'icons/poi.svg', secret: 'icons/secret.svg', early: 'icons/weapon.svg', horse: 'icons/horse.png', stranger: 'icons/stranger.png', crime: 'icons/crime.png', event: 'icons/event.png', shack: 'icons/shack.png', pickup: 'icons/pickup.png', game: 'icons/game.png', herb: 'icons/herb.png', fishspot: 'icons/fishspot.png', service: 'icons/service.png',
+    hunt: 'icons/hunt.svg', satchel: 'icons/hunt.svg', exotic: 'icons/sp_orchid_lady_of_the_night.png', gang: 'icons/gang.svg', gear: 'icons/weapon.svg', loot: 'icons/goldbar.svg', pamph: 'icons/pamphlet.svg', trinket: 'icons/trinket.svg', poi: 'icons/poi.svg', secret: 'icons/secret.svg', early: 'icons/weapon.svg', horse: 'icons/horse.png', stranger: 'icons/stranger.png', crime: 'icons/crime.png', event: 'icons/event.png', shack: 'icons/shack.png', pickup: 'icons/pickup.png', game: 'icons/game.png', herb: 'icons/herb.png', fishspot: 'icons/fishspot.png', service: 'icons/service.png',
   };
   const iconOf = it => it.ic ? (/^(weapon|hat|goldbar|stash)$/.test(it.ic) ? `icons/${it.ic}.svg` : `icons/${it.ic}.png`) : ICON[it.c];
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -304,6 +304,8 @@
     dlg.innerHTML = `<button class="dlg-close" aria-label="Close">✕</button>${popupHtml(it)}`;
     dlg.querySelector('.dlg-close').onclick = () => dlg.close();
     dlg.querySelector('[data-toggle]').onclick = () => { dlg.close(); toggle(it.id); };
+    const h = dlg.querySelector('[data-habitat]');
+    if (h) h.onclick = () => { dlg.close(); setWild(h.dataset.habitat, true); };
     dlg.showModal();
   }
   $('detail').addEventListener('click', e => { if (e.target.id === 'detail') e.target.close(); }); // tap outside closes
