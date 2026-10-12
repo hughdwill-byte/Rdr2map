@@ -364,3 +364,8 @@ body[data-tab="wild"] .tools .switch { display: none; }
 .plant-clear { margin: 0 12px 10px; }
 .satchel-link { display: flex; width: calc(100% - 16px); margin: 10px 8px 0; padding: 0 12px; align-items: center; justify-content: space-between; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
 .satchel-link small { color: var(--muted); font-weight: 400; }
+.pelt-list { list-style: none; margin: 0; padding: 4px 12px 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; }
+.pelt-list li { padding: 6px 8px; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); font-size: 13px; }
+.pelt-list li b { font-size: 15px; color: var(--c); }
+.pelt-list li small { color: var(--muted); }
+.pelt-list li.full { opacity: .5; text-decoration: line-through; }

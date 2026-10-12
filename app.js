@@ -501,6 +501,12 @@
               body += `<div class="sub-h"><span>${esc(g)}</span><span class="${gd === gt ? 'full' : ''}">${gd}/${gt}</span>${rw}</div><ul>${itemRows(gi)}</ul>`;
             }
           } else body = `<ul>${itemRows(its)}</ul>`;
+          if (c.id === 'satchel') { // pelt totals across every satchel, counting down as you tick them off
+            const tot = {};
+            for (const i of all) { const m = /^Perfect (.+) Pelt$/.exec(i.n); if (m) { const t = tot[m[1]] ||= [0, 0]; t[1]++; if (done.has(i.id)) t[0]++; } }
+            const left = Object.values(tot).reduce((n, [d, t]) => n + t - d, 0);
+            body = `<div class="pelt-sum"><div class="sub-h"><span>Perfect pelts needed in total</span><span>${left} left</span></div><ul class="pelt-list">${Object.entries(tot).sort((x, y) => y[1][1] - x[1][1]).map(([n, [d, t]]) => `<li class="${d === t ? 'full' : ''}"><b>${t - d}</b> ${esc(n)} <small>of ${t}</small></li>`).join('')}</ul></div>` + body;
+          }
           if (REF.has(c.id)) body += '<p class="note">Reference layer: not counted towards 100%.</p>';
         }
         const hidden = hiddenCats.has(c.id) || (!layersOn && NONCOL.includes(c.id));
