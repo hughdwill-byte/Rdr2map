@@ -475,6 +475,10 @@
       html += `<div class="story-banner"><div><b>${lockedTotal}</b> collectibles are waiting on story progress. You're set to <b>${esc(chName(cc))}</b>.</div>
         <button class="pill sm" data-gostory="ch${cc}">Update story progress</button></div>`;
     }
+    if (currentCh() === 5 && !query) { // ponytail: no Guarma map art or Guarma coordinates in any source, so a notice instead of a map swap
+      html += `<div class="story-banner guarma"><div><b>You're in Guarma (Chapter 5).</b> None of the 100% collectibles are here, so the list and map pick up again when you're back in Chapter 6.
+        You can't return after this chapter, so study the animals only found here now: <b>Red-footed Booby, Cuban Land Crab, Scarlet, Blue-and-yellow and Great Green Macaws, and the Fer-de-Lance snake</b>.</div></div>`;
+    }
     for (const [gid, gname] of Object.entries(GROUPS)) {
       const cats = D.cats.filter(c => c.group === gid);
       let sect = '';
