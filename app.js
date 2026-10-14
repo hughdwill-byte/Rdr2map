@@ -476,8 +476,8 @@
         <button class="pill sm" data-gostory="ch${cc}">Update story progress</button></div>`;
     }
     if (currentCh() === 5 && !query) { // ponytail: no Guarma map art or Guarma coordinates in any source, so a notice instead of a map swap
-      html += `<div class="story-banner guarma"><div><b>You're in Guarma (Chapter 5).</b> None of the 100% collectibles are here, so the list and map pick up again when you're back in Chapter 6.
-        You can't return after this chapter, so study the animals only found here now: <b>Red-footed Booby, Cuban Land Crab, Scarlet, Blue-and-yellow and Great Green Macaws, and the Fer-de-Lance snake</b>.</div></div>`;
+      html += `<div class="story-banner guarma"><div><b>You're in Guarma (Chapter 5).</b> None of the 100% collectibles are here; the main list picks up again in Chapter 6.
+        You can't return after this chapter, so study the animals only found here now: <b>Red-footed Booby, Cuban Land Crab, Scarlet, Blue-and-yellow and Great Green Macaws, and the Fer-de-Lance snake</b>. Grab the <b>Sun Hat</b> from an Aguasdulces soldier too: it's the one Guarma-only hat. All of these are pinned on the Guarma map.</div></div>`;
     }
     for (const [gid, gname] of Object.entries(GROUPS)) {
       const cats = D.cats.filter(c => c.group === gid);
@@ -812,6 +812,13 @@
 
   // Guarma (Chapter 5): its own little map from the in-game art, shown over the main map
   let guarmaMap = null, guarmaOn = false, lastCh = null;
+  const GUARMA_PINS = [ // [tick id or null, icon, name, text, [image pixel spots]]
+    ['guarma-sun-hat', '🎩', 'Sun Hat (Guarma only)', 'Worn by the soldiers in and around Aguasdulces during the Guarma missions. Shoot it off or loot it from one before Chapter 5 ends. It doesn\'t always drop, and you can never come back for it. Save first; some players report it doesn\'t stay in your wardrobe.', [[505, 318]]],
+    [null, '🦜', 'Macaws: Scarlet, Blue-and-yellow, Great Green', 'Only in Guarma. Perched and flying over the jungle canopy inland from Aguasdulces. Approximate area: look up in the trees.', [[600, 300], [470, 445]]],
+    [null, '🐦', 'Red-footed Booby', 'Only in Guarma. Sea bird on the rocky islets and cliffs along the coast. Approximate area.', [[362, 86], [178, 396], [72, 497]]],
+    [null, '🦀', 'Cuban Land Crab', 'Only in Guarma. Scuttles along the beaches and shoreline. Approximate area: walk the sand.', [[252, 388], [345, 252], [215, 470]]],
+    [null, '🐍', 'Fer-de-Lance Snake', 'Only in Guarma. In the jungle undergrowth and along the stream beds. Approximate area.', [[560, 470], [545, 365]]],
+  ];
   function showGuarma(on) {
     guarmaOn = on; $('guarma').hidden = !on; document.body.classList.toggle('guarma-on', on);
     $('map-swap').textContent = on ? '🗺 Main map' : '🏝 Guarma map';
@@ -820,6 +827,12 @@
       const gb = [[0, 0], [593, 679]]; // guarma.jpg is 679x593
       guarmaMap = L.map('guarma', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 2, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false, maxBounds: L.latLngBounds(gb).pad(0.1), maxBoundsViscosity: 1 });
       L.imageOverlay('guarma.jpg', gb).addTo(guarmaMap);
+      // ponytail: no Guarma coordinates in any source; pins are hand-placed on the art at each animal's habitat (marked approximate)
+      const px = (x, y) => [593 - y, x]; // image pixel -> map coords
+      for (const [id, icon, n, d, spots] of GUARMA_PINS) for (const [x, y] of spots)
+        L.marker(px(x, y), { icon: L.divIcon({ className: 'g-pin', html: icon, iconSize: [34, 34] }) }).addTo(guarmaMap)
+          .bindPopup(() => `<div class="pop"><h3>${esc(n)}</h3><p>${d}</p>${id ? `<button class="btn" data-gtoggle="${id}">${done.has(id) ? '↺ Mark as not collected' : '✓ Mark as collected'}</button>` : ''}</div>`, { className: 'rdr-popup', maxWidth: 280 });
+      guarmaMap.on('popupopen', e => { const b = e.popup.getElement().querySelector('[data-gtoggle]'); if (b) b.onclick = () => { toggle(b.dataset.gtoggle); guarmaMap.closePopup(); }; });
       guarmaMap.fitBounds(gb);
     } else guarmaMap.invalidateSize();
   }

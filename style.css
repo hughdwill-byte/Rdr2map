@@ -377,3 +377,4 @@ body[data-tab="wild"] .tools .switch { display: none; }
 body.has-swap #wild-legend { top: calc(60px + env(safe-area-inset-top)); }
 @media (max-width: 800px) { #guarma { left: 0; } .map-swap { left: 12px; } }
 body.guarma-on #map .leaflet-control-container, body.guarma-on #wild-legend { display: none; }
+.g-pin { display: grid; place-items: center; font-size: 18px; border-radius: 50%; background: rgba(28,22,17,.88); border: 2px solid #e8c26a; box-shadow: 0 1px 4px rgba(0,0,0,.45); }
