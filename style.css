@@ -369,3 +369,11 @@ body[data-tab="wild"] .tools .switch { display: none; }
 .pelt-list li b { font-size: 15px; color: var(--c); }
 .pelt-list li small { color: var(--muted); }
 .pelt-list li.full { opacity: .5; text-decoration: line-through; }
+#guarma { position: fixed; top: 0; bottom: 0; right: 0; left: var(--side); z-index: 950; background: #ece6d6; }
+#guarma[hidden] { display: none; }
+.map-swap { position: fixed; z-index: 960; top: calc(12px + env(safe-area-inset-top)); left: calc(var(--side) + 12px); padding: 8px 14px; border-radius: 20px;
+  background: rgba(28,22,17,.92); color: #f1e6d2; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,.4); }
+.map-swap[hidden] { display: none; }
+body.has-swap #wild-legend { top: calc(60px + env(safe-area-inset-top)); }
+@media (max-width: 800px) { #guarma { left: 0; } .map-swap { left: 12px; } }
+body.guarma-on #map .leaflet-control-container, body.guarma-on #wild-legend { display: none; }

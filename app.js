@@ -808,7 +808,28 @@
     };
   }
 
-  function refresh() { renderHeader(); renderList(); refreshMarkers(); }
+  function refresh() { renderHeader(); renderList(); refreshMarkers(); syncGuarma(); }
+
+  // Guarma (Chapter 5): its own little map from the in-game art, shown over the main map
+  let guarmaMap = null, guarmaOn = false, lastCh = null;
+  function showGuarma(on) {
+    guarmaOn = on; $('guarma').hidden = !on; document.body.classList.toggle('guarma-on', on);
+    $('map-swap').textContent = on ? '🗺 Main map' : '🏝 Guarma map';
+    if (!on) return;
+    if (!guarmaMap) {
+      const gb = [[0, 0], [593, 679]]; // guarma.jpg is 679x593
+      guarmaMap = L.map('guarma', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 2, zoomSnap: 0, zoomDelta: 0.5, zoomControl: false, attributionControl: false, maxBounds: L.latLngBounds(gb).pad(0.1), maxBoundsViscosity: 1 });
+      L.imageOverlay('guarma.jpg', gb).addTo(guarmaMap);
+      guarmaMap.fitBounds(gb);
+    } else guarmaMap.invalidateSize();
+  }
+  function syncGuarma() {
+    const cc = currentCh();
+    if (cc !== lastCh) { lastCh = cc; showGuarma(cc === 5); } // switch automatically when your chapter changes; the button overrides
+    $('map-swap').hidden = cc !== 5;
+    document.body.classList.toggle('has-swap', cc === 5);
+  }
+  $('map-swap').onclick = () => showGuarma(!guarmaOn);
 
   $('list').addEventListener('click', e => {
     const v = e.target.closest('[data-view]');
@@ -871,6 +892,7 @@
     } else if (ds.loc) goTo(ITEM[ds.loc]);
   });
   function goTo(its) {
+    if (guarmaOn) showGuarma(false); // the pins live on the main map
     if (!Array.isArray(its)) its = [its];
     const it = its[0];
     hiddenCats.delete(it.c); save('rdr2map.hiddenCats', [...hiddenCats]);
