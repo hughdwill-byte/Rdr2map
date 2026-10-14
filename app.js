@@ -812,12 +812,12 @@
 
   // Guarma (Chapter 5): its own little map from the in-game art, shown over the main map
   let guarmaMap = null, guarmaOn = false, lastCh = null;
-  const GUARMA_PINS = [ // [tick id or null, icon, name, text, [image pixel spots]]
-    ['guarma-sun-hat', '🎩', 'Sun Hat (Guarma only)', 'Worn by the soldiers in and around Aguasdulces during the Guarma missions. Shoot it off or loot it from one before Chapter 5 ends. It doesn\'t always drop, and you can never come back for it. Save first; some players report it doesn\'t stay in your wardrobe.', [[505, 318]]],
-    [null, '🦜', 'Macaws: Scarlet, Blue-and-yellow, Great Green', 'Only in Guarma. Perched and flying over the jungle canopy inland from Aguasdulces. Approximate area: look up in the trees.', [[600, 300], [470, 445]]],
-    [null, '🐦', 'Red-footed Booby', 'Only in Guarma. Sea bird on the rocky islets and cliffs along the coast. Approximate area.', [[362, 86], [178, 396], [72, 497]]],
-    [null, '🦀', 'Cuban Land Crab', 'Only in Guarma. Scuttles along the beaches and shoreline. Approximate area: walk the sand.', [[252, 388], [345, 252], [215, 470]]],
-    [null, '🐍', 'Fer-de-Lance Snake', 'Only in Guarma. In the jungle undergrowth and along the stream beds. Approximate area.', [[560, 470], [545, 365]]],
+  const GUARMA_PINS = [ // [tick id or null, category (same pin as the main map), name, text, [image pixel spots]]
+    ['guarma-sun-hat', 'hat', 'Sun Hat (Guarma only)', 'Worn by the soldiers in and around Aguasdulces during the Guarma missions. Shoot it off or loot it from one before Chapter 5 ends. It doesn\'t always drop, and you can never come back for it. Save first; some players report it doesn\'t stay in your wardrobe.', [[505, 318]]],
+    [null, 'animal', 'Macaws: Scarlet, Blue-and-yellow, Great Green', 'Only in Guarma. Perched and flying over the jungle canopy inland from Aguasdulces. Approximate area: look up in the trees.', [[600, 300], [470, 445]]],
+    [null, 'animal', 'Red-footed Booby', 'Only in Guarma. Sea bird on the rocky islets and cliffs along the coast. Approximate area.', [[362, 86], [178, 396], [72, 497]]],
+    [null, 'animal', 'Cuban Land Crab', 'Only in Guarma. Scuttles along the beaches and shoreline. Approximate area: walk the sand.', [[252, 388], [345, 252], [215, 470]]],
+    [null, 'animal', 'Fer-de-Lance Snake', 'Only in Guarma. In the jungle undergrowth and along the stream beds. Approximate area.', [[560, 470], [545, 365]]],
   ];
   function showGuarma(on) {
     guarmaOn = on; $('guarma').hidden = !on; document.body.classList.toggle('guarma-on', on);
@@ -830,9 +830,9 @@
       // ponytail: no Guarma coordinates in any source; pins are hand-placed on the art at each animal's habitat (marked approximate)
       const px = (x, y) => [593 - y, x]; // image pixel -> map coords
       for (const [id, icon, n, d, spots] of GUARMA_PINS) for (const [x, y] of spots)
-        L.marker(px(x, y), { icon: L.divIcon({ className: 'g-pin', html: icon, iconSize: [34, 34] }) }).addTo(guarmaMap)
+        L.marker(px(x, y), { icon: pinIcon(`<div class="pin" style="--c:${CAT[icon === 'hat' ? 'gear' : 'animal'].color}"><img src="icons/${icon}.${icon === 'hat' ? 'svg' : 'png'}" alt=""></div>`, id && done.has(id) ? 'done' : '') }).addTo(guarmaMap)
           .bindPopup(() => `<div class="pop"><h3>${esc(n)}</h3><p>${d}</p>${id ? `<button class="btn" data-gtoggle="${id}">${done.has(id) ? '↺ Mark as not collected' : '✓ Mark as collected'}</button>` : ''}</div>`, { className: 'rdr-popup', maxWidth: 280 });
-      guarmaMap.on('popupopen', e => { const b = e.popup.getElement().querySelector('[data-gtoggle]'); if (b) b.onclick = () => { toggle(b.dataset.gtoggle); guarmaMap.closePopup(); }; });
+      guarmaMap.on('popupopen', e => { const b = e.popup.getElement().querySelector('[data-gtoggle]'); if (b) b.onclick = () => { toggle(b.dataset.gtoggle); e.popup._source.getElement()?.classList.toggle('done', done.has(b.dataset.gtoggle)); guarmaMap.closePopup(); }; });
       guarmaMap.fitBounds(gb);
     } else guarmaMap.invalidateSize();
   }
